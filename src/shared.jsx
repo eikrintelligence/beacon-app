@@ -208,7 +208,7 @@ export function Sparkline({ data, color = 'var(--accent)', height = 36, fill = t
   const { d, area } = React.useMemo(() => buildPath(data, w, h, 3), [data, height])
   const gid = React.useId()
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="spark" style={{ overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="spark" style={{ overflow: 'hidden' }}>
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.22"/>
@@ -228,7 +228,7 @@ export function LineChart({ data, labels, color = 'var(--accent)', height = 200,
   const gid = React.useId()
   const grid = [0.25, 0.5, 0.75].map(t => pad + (h - pad * 2) * t)
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="chart-svg" style={{ overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="chart-svg" style={{ overflow: 'hidden' }}>
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.18"/>
@@ -251,7 +251,7 @@ export function BarChart({ data, labels, color = 'var(--ink)', highlight = -1, h
   const bw = (w - pad*2) / data.length * 0.66
   const slot = (w - pad*2) / data.length
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="chart-svg" style={{ overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="chart-svg" style={{ overflow: 'hidden' }}>
       {[0.25,0.5,0.75].map((t,i) => { const y = pad+(h-pad*2)*t; return <line key={i} x1={pad} x2={w-pad} y1={y} y2={y} stroke="var(--border)" strokeWidth="1" strokeDasharray="2 3"/> })}
       {data.map((v,i) => {
         const bh = (h-pad*2)*(v/max), x = pad+slot*i+(slot-bw)/2, y = h-pad-bh

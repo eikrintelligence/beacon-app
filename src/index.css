@@ -113,8 +113,8 @@
   .switch { display: flex; background: var(--surface-2); border-radius: var(--r-sm); padding: 3px; border: 1px solid var(--border); }
   .switch button { padding: 4px 12px; border-radius: 6px; border: none; background: transparent; font-size: 12.5px; cursor: pointer; color: var(--ink-3); }
   .switch button.on { background: var(--surface); color: var(--ink); font-weight: 500; box-shadow: var(--shadow-sm); }
-  .spark { width: 100%; display: block; }
-  .chart-svg { width: 100%; display: block; }
+  .spark { width: 100%; display: block; overflow: hidden; }
+  .chart-svg { width: 100%; display: block; overflow: hidden; }
   .prompt-bar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-sm); transition: box-shadow .15s, border-color .15s; }
   .prompt-bar:hover { box-shadow: var(--shadow-md); border-color: var(--border-2); }
   .feed-item { display: flex; flex-direction: column; gap: 10px; padding: var(--pad-card); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); cursor: pointer; transition: box-shadow .15s; }
