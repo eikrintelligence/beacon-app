@@ -250,7 +250,7 @@ export function ScreenDashboards({ shape }) {
               <button className="btn sm ghost"><Icon name="dots" size={14}/></button>
             </div>
             <div className="muted" style={{ fontSize:13, marginBottom:14 }}>{b.desc}</div>
-            <div style={{ height:60, marginBottom:12 }}>
+            <div style={{ height:60, overflow:'hidden', width:'100%', marginBottom:12 }}>
               <Sparkline data={shapeSeries(50+i*10, 14, shape, i*7)} height={60}
                 color={['var(--accent)','var(--accent-2)','var(--accent-4)','var(--accent-3)'][i]}/>
             </div>

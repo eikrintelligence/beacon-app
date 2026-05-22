@@ -84,7 +84,7 @@ export function ScreenHome({ persona, shape, onNavigate, onAsk }) {
                   <span className="muted" style={{ fontSize:11 }}>{f.delta.label}</span>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <div style={{ width:120, height:32 }}>
+                  <div style={{ width:120, height:32, overflow:'hidden' }}>
                     <Sparkline data={f.data} color={f.delta.dir==='up'?'var(--up)':'var(--dn)'} height={32}/>
                   </div>
                   <button className="btn sm">{f.cta} <Icon name="arrow-right" size={12}/></button>
@@ -187,7 +187,7 @@ export function ScreenAsk({ persona, shape }) {
                     <span className="tag">TIKTOK VIEWS · 7D</span>
                     <span className="chip up" style={{ fontSize:11 }}>↑ +38% WoW</span>
                   </div>
-                  <div style={{ height:90 }}>
+                  <div style={{ height:90, overflow:'hidden' }}>
                     <Sparkline data={shapeSeries(80, 14, 'growth', 4)} height={90}/>
                   </div>
                 </div>
