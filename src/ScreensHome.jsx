@@ -28,7 +28,7 @@ export function ScreenHome({ persona, shape, onNavigate, onAsk }) {
             <Icon name="sparkles" size={14}/>
           </span>
           <span style={{ color:'var(--ink-3)', fontSize:15, flex:1 }}>
-            Ask Beacon · <i style={{ color:'var(--ink-4)' }}>"why did TikTok spike yesterday?"</i>
+            Ask Sjá · <i style={{ color:'var(--ink-4)' }}>"why did TikTok spike yesterday?"</i>
           </span>
           <kbd style={{ fontFamily:'var(--font-mono)', fontSize:10, background:'var(--surface-2)', border:'1px solid var(--border)', padding:'2px 6px', borderRadius:4, color:'var(--ink-3)' }}>/</kbd>
         </button>
@@ -141,7 +141,7 @@ export function ScreenAsk({ persona, shape }) {
             <Icon name="sparkles" size={18} strokeWidth={1.8}/>
           </div>
           <div>
-            <h1 style={{ fontSize:28 }}>Ask Beacon</h1>
+            <h1 style={{ fontSize:28 }}>Ask Sjá</h1>
             <div className="sub">Plain-English questions across all your data. Pin answers to a dashboard.</div>
           </div>
         </div>
@@ -175,7 +175,7 @@ export function ScreenAsk({ persona, shape }) {
                 <div style={{ width:22, height:22, background:'var(--accent)', borderRadius:6, display:'grid', placeItems:'center', flexShrink:0 }}>
                   <Icon name="sparkles" size={12}/>
                 </div>
-                <span className="tag">BEACON</span>
+                <span className="tag">SJÁ</span>
               </div>
               <p style={{ margin:'0 0 12px', fontSize:14.5, lineHeight:1.65 }}>
                 TikTok is your <strong>best week ever</strong> — <strong>4.8M views</strong>, up 38% week over week.
@@ -230,7 +230,7 @@ export function ScreenAsk({ persona, shape }) {
           </button>
         </div>
         <div style={{ textAlign:'center', marginTop:6, fontSize:11, color:'var(--ink-4)' }}>
-          / to focus · ↵ to send · <span style={{ color:'var(--accent)' }}>Beacon can be wrong</span> — verify big decisions
+          / to focus · ↵ to send · <span style={{ color:'var(--accent)' }}>Sjá can be wrong</span> — verify big decisions
         </div>
       </div>
     </div>

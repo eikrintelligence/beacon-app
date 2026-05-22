@@ -8,7 +8,7 @@ const ACCENTS = ['#ec6b4e','#4a8c6e','#6b8cff','#a86bc4']
 
 const NAV = [
   { id:'home',        label:'Today',          icon:'home',     group:'overview' },
-  { id:'ask',         label:'Ask Beacon',     icon:'sparkles', group:'overview', badge:'new' },
+  { id:'ask',         label:'Ask Sjá',         icon:'sparkles', group:'overview', badge:'new' },
   { id:'dashboards',  label:'Dashboards',     icon:'grid',     group:'overview' },
   { id:'funnel',      label:'Funnel',         icon:'funnel',   group:'analysis' },
   { id:'cohorts',     label:'Cohorts',        icon:'users',    group:'analysis', soon:true },
@@ -82,7 +82,7 @@ function Sidebar({ route, navigate, persona }) {
     <aside className="side">
       <div className="brand">
         <div className="brand-mark"/>
-        <div className="brand-name">beacon</div>
+        <div className="brand-name">sjá</div>
       </div>
       <div className="workspace">
         <div className="avatar">D</div>
@@ -113,7 +113,7 @@ function Sidebar({ route, navigate, persona }) {
         <div className="card tinted" style={{ padding:12, borderRadius:12 }}>
           <div className="row tight" style={{ marginBottom:6, alignItems:'center' }}>
             <span className="src beac sm"><Icon name="sparkles" size={10}/></span>
-            <span className="tag" style={{ fontSize:9 }}>BEACON · TIP</span>
+            <span className="tag" style={{ fontSize:9 }}>SJÁ · TIP</span>
           </div>
           <div style={{ fontSize:12, lineHeight:1.35 }}>
             Hit <kbd style={{ fontFamily:'var(--font-mono)', fontSize:10, background:'var(--surface)', border:'1px solid var(--border)', padding:'1px 5px', borderRadius:3 }}>/</kbd> anywhere to ask a question.
@@ -136,7 +136,7 @@ function Topbar({ route, navigate, tweaks, setTweak }) {
       <div className="grow"/>
       <button className="search" onClick={() => navigate('ask')}>
         <Icon name="search" size={14}/>
-        <span>Search or ask Beacon…</span>
+        <span>Search or ask Sjá…</span>
         <kbd>/</kbd>
       </button>
       <button className="btn ghost sm" title="Toggle theme"
