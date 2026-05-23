@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
-import { updateGoal, connectShopify, testShopify } from './api'
 import { Icon } from './shared'
 
-export default function Onboarding({ onComplete }) {
+export default function Onboarding({ onComplete, token, userEmail }) {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -21,6 +20,7 @@ export default function Onboarding({ onComplete }) {
   const [accessToken, setAccessToken] = useState('')
   const [shopifyConnected, setShopifyConnected] = useState(false)
   const [shopName, setShopName] = useState('')
+  const [workspaceId, setWorkspaceId] = useState(null)
 
   const totalWeeks = Math.round(
     (new Date(endDate) - new Date(startDate)) / (7 * 24 * 60 * 60 * 1000)
@@ -33,7 +33,12 @@ export default function Onboarding({ onComplete }) {
     setLoading(true)
     setError('')
     try {
-      await updateGoal({
+      const { createWorkspace, updateGoal } = await import('./api')
+      const wsData = await createWorkspace(token, { name: brandName, industry })
+      if (wsData.error) throw new Error(wsData.error)
+      const wsId = wsData.workspace.id
+      localStorage.setItem('sja_workspace_id', wsId)
+      await updateGoal(token, wsId, {
         type: 'revenue',
         target: parseInt(goalAmount),
         start_date: startDate,
@@ -41,8 +46,9 @@ export default function Onboarding({ onComplete }) {
         label: `$${parseInt(goalAmount).toLocaleString()} Revenue Goal`
       })
       setStep(3)
+      setWorkspaceId(wsId)
     } catch (e) {
-      setError('Could not save goal. Check backend connection.')
+      setError('Could not save. Check connection: ' + e.message)
     }
     setLoading(false)
   }
@@ -51,9 +57,10 @@ export default function Onboarding({ onComplete }) {
     setLoading(true)
     setError('')
     try {
+      const { connectShopify, testShopify } = await import('./api')
       const clean = storeUrl.replace('https://', '').replace('http://', '').replace(/\/$/, '')
-      await connectShopify(clean, accessToken)
-      const test = await testShopify()
+      await connectShopify(token, workspaceId, clean, accessToken)
+      const test = await testShopify(token)
       if (test.success) {
         setShopifyConnected(true)
         setShopName(test.shop)

@@ -185,7 +185,7 @@ const SUGGESTIONS = [
   'What should I focus on this week?',
 ]
 
-export function ScreenAsk({ persona, shape }) {
+export function ScreenAsk({ persona, shape, token, workspaceId }) {
   const [input, setInput] = useState('')
   const [threads, setThreads] = useState([])
   const [loading, setLoading] = useState(false)
@@ -201,7 +201,7 @@ export function ScreenAsk({ persona, shape }) {
     setLoading(true)
     try {
       const { askAI } = await import('./api')
-      const result = await askAI(question, history)
+      const result = await askAI(token, workspaceId, question, history)
       const newThread = { q: question, a: result.answer }
       setThreads(prev => [...prev, newThread])
       setHistory(prev => [
