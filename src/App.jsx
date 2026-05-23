@@ -11,6 +11,7 @@ import { ScreenAlerts } from './ScreenAlerts'
 import { ScreenSKU } from './ScreenSKU'
 import { ScreenSubscriptions } from './ScreenSubscriptions'
 import AcceptInvite from './AcceptInvite'
+import PublicView from './PublicView'
 import { getWorkspace, getRevenue, createWorkspace } from './api'
 
 const ACCENTS = ['#ec6b4e','#4a8c6e','#6b8cff','#a86bc4']
@@ -81,6 +82,9 @@ function AppShell() {
 
   const inviteToken = new URLSearchParams(window.location.search).get('invite')
   if (inviteToken) return <AcceptInvite inviteToken={inviteToken}/>
+
+  const shareToken = new URLSearchParams(window.location.search).get('share')
+  if (shareToken) return <PublicView token={shareToken}/>
 
   if (!user) return <Login onNeedOnboarding={(data) => setNeedOnboarding(data)}/>
 
@@ -278,6 +282,27 @@ function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token,
   }
 }
 
+function ClientPortalLink({ shareToken }) {
+  const [copied, setCopied] = React.useState(false)
+  const url = `${window.location.origin}/?share=${shareToken}`
+  function copy() {
+    navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  return (
+    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+      <input readOnly value={url}
+        onClick={e => e.target.select()}
+        style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', fontSize: 13, color: 'var(--ink-2)', fontFamily: 'var(--font-mono)', outline: 'none' }}
+      />
+      <button className="btn primary" onClick={copy} style={{ flexShrink: 0 }}>
+        {copied ? '✓ Copied' : 'Copy link'}
+      </button>
+    </div>
+  )
+}
+
 function ScreenSettings({ token, workspaceId, workspaceData }) {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState('analyst')
@@ -388,6 +413,15 @@ function ScreenSettings({ token, workspaceId, workspaceData }) {
           </div>
         </div>
       </div>
+
+      {/* Client portal link */}
+      {workspaceData?.workspace?.share_token && (
+        <div className="card">
+          <h3 style={{ marginBottom: 4 }}>Client portal</h3>
+          <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 16 }}>Share this link with your client — no login required</div>
+          <ClientPortalLink shareToken={workspaceData.workspace.share_token} />
+        </div>
+      )}
 
       {/* Role legend */}
       <div className="card">
