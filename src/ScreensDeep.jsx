@@ -371,39 +371,107 @@ export function ScreenDashboards({ shape }) {
   )
 }
 
-export function ScreenGoals() {
-  const goals = [
-    { name:'Weekly revenue', current:84200, target:100000, deadline:'in 2d', pace:'on track', up:true, unit:'money' },
-    { name:'Monthly orders', current:4128, target:5000, deadline:'in 9d', pace:'on track', up:true, unit:'int' },
-    { name:'Blended ROAS', current:3.4, target:4.0, deadline:'in 14d', pace:'behind', up:false, unit:'x' },
-    { name:'New customers', current:412, target:600, deadline:'in 14d', pace:'on track', up:true, unit:'int' },
+export function ScreenGoals({ workspaceData }) {
+  const goals = workspaceData?.goals || []
+  const defaultGoals = [
+    { id: 'demo1', label: 'Weekly revenue', type: 'revenue', current: 84200, target: 100000, end_date: new Date(Date.now() + 2*24*60*60*1000).toISOString(), unit: 'money' },
+    { id: 'demo2', label: 'Monthly orders', type: 'orders', current: 4128, target: 5000, end_date: new Date(Date.now() + 9*24*60*60*1000).toISOString(), unit: 'int' },
+    { id: 'demo3', label: 'Blended ROAS', type: 'roas', current: 3.4, target: 4.0, end_date: new Date(Date.now() + 14*24*60*60*1000).toISOString(), unit: 'x' },
+    { id: 'demo4', label: 'New customers', type: 'customers', current: 412, target: 600, end_date: new Date(Date.now() + 14*24*60*60*1000).toISOString(), unit: 'int' },
   ]
+  const displayGoals = goals.length > 0 ? goals : defaultGoals
+
+  function fmtVal(v, unit) {
+    if (unit === 'money') return v >= 1000 ? '$' + (v/1000).toFixed(1) + 'k' : '$' + Math.round(v)
+    if (unit === 'x') return parseFloat(v).toFixed(1) + 'x'
+    return Math.round(v).toLocaleString()
+  }
+
+  function daysLeft(dateStr) {
+    const days = Math.ceil((new Date(dateStr) - Date.now()) / (1000*60*60*24))
+    return days > 0 ? `${days}d left` : 'overdue'
+  }
+
+  const revenue = displayGoals.find(g => g.type === 'revenue')
+  const startDate = workspaceData?.goals?.[0]?.start_date
+  const endDate = workspaceData?.goals?.[0]?.end_date
+  const totalWeeks = startDate && endDate ? Math.round((new Date(endDate) - new Date(startDate)) / (7*24*60*60*1000)) : 39
+  const weeksElapsed = startDate ? Math.max(1, Math.round((Date.now() - new Date(startDate)) / (7*24*60*60*1000))) : 8
+  const weeksLeft = Math.max(1, totalWeeks - weeksElapsed)
+  const pacePerWeek = revenue ? (revenue.current / weeksElapsed) : 0
+  const projected = Math.round(pacePerWeek * totalWeeks)
+  const onTrack = revenue ? projected >= revenue.target * 0.95 : false
+
   return (
     <div className="page">
       <div className="page-head">
-        <div><h1>Goals & alerts</h1><div className="sub">4 active goals · 3 on track · 1 behind pace</div></div>
+        <div><h1>Goals & alerts</h1>
+          <div className="sub">{displayGoals.length} active goals · {onTrack ? '✓ on track' : '⚠ needs attention'}</div>
+        </div>
         <div className="actions">
           <button className="btn primary"><Icon name="plus" size={14}/> New goal</button>
         </div>
       </div>
+
+      {revenue && (
+        <div className="card" style={{ background: 'var(--ink)', color: 'var(--bg)', padding: '20px 24px' }}>
+          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', opacity: 0.5, marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
+            PRIMARY GOAL · {endDate ? new Date(endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'DEC 2026'}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 10 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 48, letterSpacing: '-0.03em' }}>
+              ${Math.round(revenue.current / 1000)}k
+            </div>
+            <div style={{ opacity: 0.4, fontSize: 22, fontFamily: 'var(--font-display)' }}>/ ${Math.round(revenue.target / 1000)}k</div>
+            <span style={{ padding: '4px 10px', borderRadius: 999, background: onTrack ? '#4ade80' : '#f87171', color: '#1a1612', fontSize: 12, fontWeight: 700 }}>
+              {onTrack ? '✓ On track' : '✗ Off pace'}
+            </span>
+          </div>
+          <div style={{ height: 6, background: 'rgba(255,255,255,0.12)', borderRadius: 3, marginBottom: 8 }}>
+            <div style={{ height: '100%', width: Math.min(100, Math.round(revenue.current/revenue.target*100)) + '%', background: 'var(--accent)', borderRadius: 3 }}/>
+          </div>
+          <div style={{ display: 'flex', gap: 32, marginTop: 12 }}>
+            <div>
+              <div style={{ fontSize: 10, opacity: 0.45, fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>CURRENT PACE</div>
+              <div style={{ fontWeight: 700, fontSize: 18, marginTop: 2 }}>${Math.round(pacePerWeek/1000)}k/wk</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, opacity: 0.45, fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>NEEDED PACE</div>
+              <div style={{ fontWeight: 700, fontSize: 18, marginTop: 2 }}>${Math.round((revenue.target-revenue.current)/weeksLeft/1000)}k/wk</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, opacity: 0.45, fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>PROJECTED</div>
+              <div style={{ fontWeight: 700, fontSize: 18, marginTop: 2, color: onTrack ? '#4ade80' : '#f87171' }}>${Math.round(projected/1000)}k</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, opacity: 0.45, fontFamily: 'var(--font-mono)', letterSpacing: '0.07em' }}>WEEKS LEFT</div>
+              <div style={{ fontWeight: 700, fontSize: 18, marginTop: 2 }}>{weeksLeft}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid-2">
-        {goals.map((g, i) => {
-          const pct = g.current / g.target
+        {displayGoals.map(g => {
+          const pct = Math.min(100, Math.round((g.current / g.target) * 100))
+          const up = pct >= 70
           return (
-            <div key={i} className="card">
-              <div className="row between" style={{ marginBottom:14 }}>
+            <div key={g.id} className="card">
+              <div className="row between" style={{ marginBottom: 14 }}>
                 <div>
-                  <div className="tag">GOAL · {g.deadline}</div>
-                  <h3 style={{ marginTop:4 }}>{g.name}</h3>
+                  <div className="tag">{g.type?.toUpperCase()} · {daysLeft(g.end_date)}</div>
+                  <h3 style={{ marginTop: 4 }}>{g.label}</h3>
                 </div>
-                <span className={'chip '+(g.up?'up':'dn')}>{g.pace}</span>
+                <span className={'chip ' + (up ? 'up' : 'dn')}>{pct}% complete</span>
               </div>
-              <div className="row tight" style={{ gap:18, alignItems:'center' }}>
-                <Donut value={Math.min(1,pct)} label={Math.round(pct*100)+'%'} size={88}
-                  color={g.up?'var(--accent)':'var(--dn)'}/>
-                <div style={{ flex:1 }}>
-                  <div className="num" style={{ fontSize:28 }}>{fmt(g.current, g.unit)}</div>
-                  <div className="muted" style={{ fontSize:12 }}>of {fmt(g.target, g.unit)} target</div>
+              <div className="row tight" style={{ gap: 18, alignItems: 'center' }}>
+                <Donut value={pct/100} label={pct+'%'} size={88} color={up ? 'var(--accent)' : 'var(--dn)'}/>
+                <div style={{ flex: 1 }}>
+                  <div className="num" style={{ fontSize: 28 }}>{fmtVal(g.current, g.unit || 'int')}</div>
+                  <div className="muted" style={{ fontSize: 12 }}>of {fmtVal(g.target, g.unit || 'int')} target</div>
+                  <div style={{ height: 4, background: 'var(--surface-2)', borderRadius: 2, marginTop: 10 }}>
+                    <div style={{ height: '100%', width: pct+'%', background: up ? 'var(--accent)' : 'var(--dn)', borderRadius: 2, transition: 'width 0.6s' }}/>
+                  </div>
                 </div>
               </div>
             </div>

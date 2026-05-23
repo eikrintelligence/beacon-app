@@ -97,6 +97,25 @@ export function ScreenHome({ persona, shape, onNavigate, onAsk, revenueData, wor
         </div>
       </div>
 
+      {workspaceData?.alerts?.length > 0 && (
+        <div className="stack fade-in" style={{ gap: 8, animationDelay: '30ms' }}>
+          {workspaceData.alerts.map(alert => (
+            <div key={alert.id} style={{
+              display: 'flex', alignItems: 'flex-start', gap: 12,
+              padding: '12px 16px', borderRadius: 12,
+              background: alert.severity === 'warning' ? 'color-mix(in oklab, #f59e0b 12%, var(--surface))' : 'color-mix(in oklab, var(--dn) 10%, var(--surface))',
+              border: `1px solid ${alert.severity === 'warning' ? 'color-mix(in oklab, #f59e0b 30%, var(--surface))' : 'color-mix(in oklab, var(--dn) 25%, var(--surface))'}`,
+            }}>
+              <span style={{ fontSize: 16 }}>{alert.severity === 'warning' ? '⚠️' : '🚨'}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{alert.message}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2 }}>{new Date(alert.created_at).toLocaleDateString()}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ASK SJÁ PROMPT */}
       <div className="fade-in" style={{ marginBottom: 4, animationDelay: '40ms' }}>
         <button className="prompt-bar" onClick={onAsk} style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}>
