@@ -1,4 +1,4 @@
-const BASE = 'http://62.238.18.80:3001/api'
+const BASE = 'https://sja.eikr.ee/api'
 
 export async function getWorkspace() {
   const res = await fetch(`${BASE}/workspace`)
