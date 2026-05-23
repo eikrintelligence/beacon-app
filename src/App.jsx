@@ -8,6 +8,7 @@ import { ScreenHome, ScreenAsk } from './ScreensHome'
 import { ScreenFunnel, ScreenConnections, ScreenDashboards, ScreenGoals } from './ScreensDeep'
 import { ScreenAttribution } from './ScreenAttribution'
 import { ScreenAlerts } from './ScreenAlerts'
+import { ScreenSKU } from './ScreenSKU'
 import { getWorkspace, getRevenue, createWorkspace } from './api'
 
 const ACCENTS = ['#ec6b4e','#4a8c6e','#6b8cff','#a86bc4']
@@ -18,6 +19,7 @@ const NAV = [
   { id:'dashboards',   label:'Dashboards',     icon:'grid',     group:'overview' },
   { id:'funnel',       label:'Funnel',         icon:'funnel',   group:'analysis' },
   { id:'attribution',  label:'Attribution',    icon:'grid',     group:'analysis' },
+  { id:'sku',          label:'Products',       icon:'grid',     group:'analysis' },
   { id:'cohorts',      label:'Cohorts',        icon:'users',    group:'analysis', soon:true },
   { id:'goals',        label:'Goals',          icon:'target',   group:'analysis' },
   { id:'alerts',       label:'Alerts',         icon:'bell',     group:'analysis' },
@@ -31,14 +33,14 @@ const TWEAK_DEFAULTS = {
 }
 
 const ROLE_NAV = {
-  admin:   ['home','ask','dashboards','funnel','attribution','cohorts','goals','alerts','connections','settings'],
-  analyst: ['home','ask','dashboards','funnel','attribution','goals','alerts','connections'],
+  admin:   ['home','ask','dashboards','funnel','attribution','sku','cohorts','goals','alerts','connections','settings'],
+  analyst: ['home','ask','dashboards','funnel','attribution','sku','goals','alerts','connections'],
   client:  ['home','goals'],
   agency:  ['home','dashboards','connections'],
 }
 
 function AppShell() {
-  const { user, profile, workspace, role, token, loading, logout } = useAuth()
+  const { user, profile, workspace, memberships, role, token, loading, logout, switchWorkspace } = useAuth()
   const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS)
   const [route, setRoute] = useState({ name: 'home', params: {} })
   const [needOnboarding, setNeedOnboarding] = useState(false)
@@ -97,7 +99,9 @@ function AppShell() {
       {sideOpen && <div onClick={() => setSideOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:99, display:'none' }} className="mob-overlay"/>}
       <Sidebar route={route} navigate={(n,p) => { navigate(n,p); setSideOpen(false) }} persona={persona}
         workspaceName={workspace?.name} filteredNav={filteredNav}
-        role={role} onLogout={logout} sideOpen={sideOpen} setSideOpen={setSideOpen}/>
+        role={role} onLogout={logout} sideOpen={sideOpen} setSideOpen={setSideOpen}
+        memberships={memberships} switchWorkspace={m => { switchWorkspace(m); window.location.reload() }}
+        onNewClient={() => { setNeedOnboarding(true); setSideOpen(false) }}/>
       <div className="main">
         <Topbar route={route} navigate={navigate} tweaks={tweaks} setTweak={setTweak}
           profile={profile} onLogout={logout} setSideOpen={setSideOpen}/>
@@ -138,22 +142,42 @@ function AppShell() {
   )
 }
 
-function Sidebar({ route, navigate, persona, workspaceName, filteredNav, role, onLogout, sideOpen, setSideOpen }) {
+function Sidebar({ route, navigate, persona, workspaceName, filteredNav, role, onLogout, sideOpen, setSideOpen, memberships, switchWorkspace, onNewClient }) {
+  const [wsOpen, setWsOpen] = useState(false)
+  const branding = (() => { try { return JSON.parse(localStorage.getItem('sja_branding') || '{}') } catch { return {} } })()
   const groups = ['overview','analysis','admin']
   return (
     <aside className="side" style={{ '--mob-open': sideOpen ? '1' : '0' }}>
       <div className="brand">
         <div className="brand-mark"/>
-        <div className="brand-name">sjá</div>
+        <div className="brand-name">{branding.name || 'sjá'}</div>
       </div>
-      <div className="workspace">
-        <div className="avatar">{(workspaceName || 'W')[0].toUpperCase()}</div>
+      <div className="workspace" onClick={() => memberships.length > 1 && setWsOpen(o => !o)} style={{ cursor: memberships.length > 1 ? 'pointer' : 'default', position: 'relative' }}>
+        <div className="avatar" style={{ background: branding.color || undefined }}>{(workspaceName || 'W')[0].toUpperCase()}</div>
         <div className="ws-meta">
           <div className="ws-name">{workspaceName || 'Workspace'}</div>
           <div className="ws-plan">{role} · active</div>
         </div>
-        <Icon name="chev-down" size={12}/>
+        {memberships.length > 1 && <Icon name="chev-down" size={12}/>}
       </div>
+      {wsOpen && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, margin: '4px 12px', padding: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+          {memberships.map(m => (
+            <button key={m.workspaces?.id} onClick={() => { switchWorkspace(m); setWsOpen(false) }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 10px', borderRadius: 8, border: 'none', background: m.workspaces?.id === localStorage.getItem('sja_workspace_id') ? 'var(--surface-2)' : 'transparent', cursor: 'pointer', textAlign: 'left' }}>
+              <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--accent)', color: 'white', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{(m.workspaces?.name || 'W')[0].toUpperCase()}</div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{m.workspaces?.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--ink-3)', textTransform: 'capitalize' }}>{m.role}</div>
+              </div>
+            </button>
+          ))}
+          <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }}/>
+          <button onClick={onNewClient} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--accent)', fontSize: 13, fontWeight: 600 }}>
+            <Icon name="plus" size={14}/> New client
+          </button>
+        </div>
+      )}
       {groups.map(g => {
         const items = filteredNav.filter(n => n.group === g)
         if (!items.length) return null
@@ -233,10 +257,11 @@ function Topbar({ route, navigate, tweaks, setTweak, profile, onLogout, setSideO
 
 function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token, workspace, role }) {
   switch (route.name) {
-    case 'home': return <ScreenHome persona={tweaks.persona} shape={tweaks.shape} onNavigate={navigate} onAsk={() => navigate('ask')} revenueData={revenueData} workspaceData={workspaceData} role={role}/>
+    case 'home': return <ScreenHome persona={tweaks.persona} shape={tweaks.shape} onNavigate={navigate} onAsk={() => navigate('ask')} revenueData={revenueData} workspaceData={workspaceData} role={role} token={token} workspaceId={workspace?.id}/>
     case 'ask': return <ScreenAsk persona={tweaks.persona} shape={tweaks.shape} token={token} workspaceId={workspace?.id}/>
     case 'funnel': return <ScreenFunnel shape={tweaks.shape} workspaceData={workspaceData}/>
     case 'attribution': return <ScreenAttribution/>
+    case 'sku': return <ScreenSKU token={token} workspaceId={workspace?.id}/>
     case 'connections': return <ScreenConnections token={token} workspaceId={workspace?.id}/>
     case 'dashboards': return <ScreenDashboards shape={tweaks.shape}/>
     case 'goals': return <ScreenGoals workspaceData={workspaceData}/>
@@ -251,6 +276,16 @@ function ScreenSettings({ token, workspaceId, workspaceData }) {
   const [inviteRole, setInviteRole] = useState('analyst')
   const [inviting, setInviting] = useState(false)
   const [inviteMsg, setInviteMsg] = useState('')
+  const [branding, setBranding] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('sja_branding') || '{}') } catch { return {} }
+  })
+  const [brandSaved, setBrandSaved] = useState(false)
+
+  function saveBranding() {
+    localStorage.setItem('sja_branding', JSON.stringify(branding))
+    setBrandSaved(true)
+    setTimeout(() => setBrandSaved(false), 2000)
+  }
 
   async function handleInvite() {
     setInviting(true)
@@ -313,6 +348,37 @@ function ScreenSettings({ token, workspaceId, workspaceData }) {
             </button>
           </div>
           {inviteMsg && <div style={{ fontSize:13, marginTop:10, color:'var(--up)' }}>{inviteMsg}</div>}
+        </div>
+      </div>
+
+      {/* Branding */}
+      <div className="card">
+        <h3 style={{ marginBottom: 4 }}>White-label branding</h3>
+        <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 16 }}>Replaces "sjá by EIKR" in the sidebar with your own brand</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Consultant / agency name</label>
+            <input value={branding.name || ''} onChange={e => setBranding(b => ({ ...b, name: e.target.value }))} placeholder="e.g. Denisse Consulting"
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-body)', outline: 'none', boxSizing: 'border-box' }}/>
+          </div>
+          <div className="row tight" style={{ alignItems: 'center', gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Primary colour</label>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input type="color" value={branding.color || '#ec6b4e'} onChange={e => setBranding(b => ({ ...b, color: e.target.value }))}
+                  style={{ width: 40, height: 40, borderRadius: 8, border: '1px solid var(--border)', padding: 2, cursor: 'pointer', background: 'var(--surface)' }}/>
+                <span style={{ fontSize: 13, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>{branding.color || '#ec6b4e'}</span>
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Logo</label>
+              <div style={{ padding: '10px 14px', borderRadius: 10, border: '1px dashed var(--border)', background: 'var(--surface-2)', fontSize: 13, color: 'var(--ink-3)', textAlign: 'center' }}>Upload coming soon</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button className="btn primary" onClick={saveBranding}>Save branding</button>
+            {brandSaved && <span style={{ fontSize: 13, color: 'var(--up)', fontWeight: 600 }}>✓ Saved — reload to see changes</span>}
+          </div>
         </div>
       </div>
 

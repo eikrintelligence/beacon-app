@@ -24,12 +24,58 @@ function ClientView({ revenueData, workspaceData }) {
   )
 }
 
-export function ScreenHome({ persona, shape, onNavigate, onAsk, revenueData, workspaceData, role }) {
+function DigestModal({ token, workspaceId, onClose }) {
+  const [text, setText] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    fetch(`https://sja.eikr.ee/api/ai/digest?workspace_id=${workspaceId || ''}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    })
+      .then(r => r.json())
+      .then(d => setText(d.digest || d.error || 'No digest available'))
+      .catch(() => setText('Failed to load digest'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  function copy() {
+    navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) })
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }} onClick={onClose}>
+      <div style={{ background: 'var(--surface)', borderRadius: 16, maxWidth: 560, width: '100%', padding: 28, boxShadow: '0 8px 40px rgba(0,0,0,0.2)', maxHeight: '80vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div>
+            <h3 style={{ margin: 0 }}>Morning digest</h3>
+            <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 2 }}>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
+          </div>
+          <button className="btn ghost sm" onClick={onClose}>✕</button>
+        </div>
+        {loading ? (
+          <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink-3)' }}>Generating digest...</div>
+        ) : (
+          <div style={{ fontSize: 14, lineHeight: 1.75, color: 'var(--ink-2)', whiteSpace: 'pre-wrap', marginBottom: 20 }}>{text}</div>
+        )}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn primary" onClick={copy} disabled={loading}>
+            {copied ? '✓ Copied!' : 'Copy to clipboard'}
+          </button>
+          <button className="btn ghost sm" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function ScreenHome({ persona, shape, onNavigate, onAsk, revenueData, workspaceData, role, token, workspaceId }) {
   if (role === 'client') return <ClientView revenueData={revenueData} workspaceData={workspaceData}/>
   const p = PERSONAS[persona] || PERSONAS.marketing
   const h = new Date().getHours()
   const greeting = h < 12 ? 'good morning' : h < 18 ? 'good afternoon' : 'good evening'
   const [filter, setFilter] = useState('all')
+  const [digestOpen, setDigestOpen] = useState(false)
   const filtered = FEED.filter(f => filter === 'all' || f.tag === filter)
   const filters = [['all','All'],['spike','Spikes'],['drop','Drops'],['goal','Goals'],['risk','Risks'],['opportunity','Opps']]
 
@@ -61,6 +107,7 @@ export function ScreenHome({ persona, shape, onNavigate, onAsk, revenueData, wor
   const projPct = Math.min(100, Math.round((projected / goalTarget) * 100))
 
   return (
+    <>
     <div className="page">
       <div className="page-head">
         <div>
@@ -69,7 +116,7 @@ export function ScreenHome({ persona, shape, onNavigate, onAsk, revenueData, wor
         </div>
         <div className="actions">
           <div className="range"><span className="dot"/> Last 7 days <Icon name="chev-down" size={12}/></div>
-          <button className="btn"><Icon name="share" size={14}/> Share digest</button>
+          <button className="btn" onClick={() => setDigestOpen(true)}><Icon name="share" size={14}/> Share digest</button>
         </div>
       </div>
 
@@ -216,6 +263,8 @@ export function ScreenHome({ persona, shape, onNavigate, onAsk, revenueData, wor
         })}
       </div>
     </div>
+    {digestOpen && <DigestModal token={token} workspaceId={workspaceId} onClose={() => setDigestOpen(false)}/>}
+    </>
   )
 }
 
