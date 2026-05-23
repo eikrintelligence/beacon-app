@@ -162,7 +162,7 @@ function Sidebar({ route, navigate, persona, workspaceName, filteredNav, role, o
         <div className="avatar" style={{ background: branding.color || undefined }}>{(workspaceName || 'W')[0].toUpperCase()}</div>
         <div className="ws-meta">
           <div className="ws-name">{workspaceName || 'Workspace'}</div>
-          <div className="ws-plan">{role} · active</div>
+          <div className="ws-plan">{role} · Pro · 5 users</div>
         </div>
         {memberships.length > 1 && <Icon name="chev-down" size={12}/>}
       </div>

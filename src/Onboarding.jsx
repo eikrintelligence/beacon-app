@@ -12,7 +12,7 @@ export default function Onboarding({ onComplete, token, userEmail }) {
 
   // Step 2 — Goal
   const [goalAmount, setGoalAmount] = useState('500000')
-  const [startDate, setStartDate] = useState('2026-04-01')
+  const [startDate, setStartDate] = useState('2026-05-25')
   const [endDate, setEndDate] = useState('2026-12-31')
 
   // Step 3 — Shopify
