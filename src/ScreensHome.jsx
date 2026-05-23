@@ -177,38 +177,42 @@ export function ScreenHome({ persona, shape, onNavigate, onAsk, revenueData, wor
 }
 
 const SUGGESTIONS = [
-  'why did TikTok spike yesterday?',
-  'compare CAC across channels last 30 days',
-  'which product drives the most repeat buyers?',
-  'where is the funnel leaking this week?',
-  'what is our best performing creative this month?',
+  'Are we on pace for our revenue goal?',
+  'Which channel is driving the most revenue?',
+  'What is our repurchase rate this month?',
+  'Which products are selling best right now?',
+  'Where is our biggest drop-off in the funnel?',
+  'What should I focus on this week?',
 ]
-
-const MOCK_ANSWERS = {
-  default: {
-    text: "TikTok is your **best week ever** — **4.8M views**, up 38% week over week. The whole spike traces to **one video** that went viral Tuesday night.",
-    chart: true,
-    actions: ['Show me the video', 'Compare to Meta', 'What % of revenue came from it?'],
-  }
-}
 
 export function ScreenAsk({ persona, shape }) {
   const [input, setInput] = useState('')
   const [threads, setThreads] = useState([])
   const [loading, setLoading] = useState(false)
+  const [history, setHistory] = useState([])
   const inputRef = useRef(null)
 
   React.useEffect(() => { inputRef.current?.focus() }, [])
 
-  function submit(q) {
+  async function submit(q) {
     const question = q || input.trim()
     if (!question) return
     setInput('')
     setLoading(true)
-    setTimeout(() => {
-      setThreads(prev => [...prev, { q: question, a: MOCK_ANSWERS.default }])
-      setLoading(false)
-    }, 800)
+    try {
+      const { askAI } = await import('./api')
+      const result = await askAI(question, history)
+      const newThread = { q: question, a: result.answer }
+      setThreads(prev => [...prev, newThread])
+      setHistory(prev => [
+        ...prev,
+        { role: 'user', content: question },
+        { role: 'assistant', content: result.answer }
+      ])
+    } catch (err) {
+      setThreads(prev => [...prev, { q: question, a: 'Sorry — could not reach Sjá backend. Check your connection.' }])
+    }
+    setLoading(false)
   }
 
   return (
@@ -255,29 +259,11 @@ export function ScreenAsk({ persona, shape }) {
                 </div>
                 <span className="tag">SJÁ</span>
               </div>
-              <p style={{ margin:'0 0 12px', fontSize:14.5, lineHeight:1.65 }}>
-                TikTok is your <strong>best week ever</strong> — <strong>4.8M views</strong>, up 38% week over week.
-                The whole spike traces to <strong>one video</strong> that went viral Tuesday night.
-              </p>
-              {t.a.chart && (
-                <div style={{ margin:'12px 0', background:'var(--surface-2)', borderRadius:10, padding:'14px 16px' }}>
-                  <div className="row between" style={{ marginBottom:8 }}>
-                    <span className="tag">TIKTOK VIEWS · 7D</span>
-                    <span className="chip up" style={{ fontSize:11 }}>↑ +38% WoW</span>
-                  </div>
-                  <div style={{ height:90, overflow:'hidden' }}>
-                    <Sparkline data={shapeSeries(80, 14, 'growth', 4)} height={90}/>
-                  </div>
-                </div>
-              )}
-              <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop:8 }}>
-                {t.a.actions.map(a => (
-                  <button key={a} className="btn sm">{a}</button>
-                ))}
+              <div style={{ fontSize:14.5, lineHeight:1.7, color:'var(--ink-2)', whiteSpace:'pre-wrap' }}>
+                {t.a}
               </div>
               <div className="row between" style={{ marginTop:14, paddingTop:12, borderTop:'1px solid var(--border)' }}>
                 <div className="row tight">
-                  <button className="btn sm"><Icon name="pin" size={12}/> Pin to dashboard</button>
                   <button className="btn sm ghost"><Icon name="share" size={12}/></button>
                 </div>
                 <div className="row tight">
