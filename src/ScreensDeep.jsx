@@ -171,46 +171,152 @@ export function ScreenFunnel({ shape }) {
   )
 }
 
-export function ScreenConnections() {
-  const [connected, setConnected] = useState(['tt','ma','gads','sh','ga'])
-  const allSources = [
-    ...CHANNELS,
-    { id:'em', name:'Klaviyo Email', short:'EM', color:'#f59e0b', icon:'am' },
-    { id:'yt', name:'YouTube Ads', short:'YT', color:'#ff0000', icon:'ma' },
-    { id:'pi', name:'Pinterest', short:'PI', color:'#e60023', icon:'tt' },
+export function ScreenConnections({ token, workspaceId }) {
+  const [connections, setConnections] = useState([])
+  const [connecting, setConnecting] = useState(null)
+  const [metaToken, setMetaToken] = useState('')
+  const [metaAccountId, setMetaAccountId] = useState('')
+  const [shopifyUrl, setShopifyUrl] = useState('')
+  const [shopifyToken, setShopifyToken] = useState('')
+  const [msg, setMsg] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (workspaceId && token) {
+      fetch(`https://sja.eikr.ee/api/workspace/${workspaceId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(r => r.json())
+        .then(d => setConnections(d.connections || []))
+        .catch(() => {})
+    }
+  }, [workspaceId, token])
+
+  const isConnected = (platform) => connections.some(c => c.platform === platform && c.status === 'active')
+
+  async function connectShopify() {
+    setLoading(true)
+    setMsg('')
+    try {
+      const clean = shopifyUrl.replace('https://','').replace('http://','').replace(/\/$/,'')
+      const res = await fetch('https://sja.eikr.ee/api/shopify/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ store_url: clean, access_token: shopifyToken, workspace_id: workspaceId })
+      })
+      const data = await res.json()
+      if (data.success) {
+        setMsg('✓ Shopify connected!')
+        setConnecting(null)
+        const test = await fetch(`https://sja.eikr.ee/api/shopify/test?workspace_id=${workspaceId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).then(r => r.json())
+        if (test.success) setMsg(`✓ Connected to ${test.shop}`)
+      } else {
+        setMsg('Error: ' + data.error)
+      }
+    } catch (e) {
+      setMsg('Connection failed: ' + e.message)
+    }
+    setLoading(false)
+  }
+
+  async function connectMeta() {
+    setLoading(true)
+    setMsg('')
+    try {
+      const res = await fetch('https://sja.eikr.ee/api/meta/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ access_token: metaToken, ad_account_id: metaAccountId, workspace_id: workspaceId })
+      })
+      const data = await res.json()
+      if (data.success) { setMsg('✓ Meta Ads connected!'); setConnecting(null) }
+      else setMsg('Error: ' + data.error)
+    } catch (e) {
+      setMsg('Connection failed: ' + e.message)
+    }
+    setLoading(false)
+  }
+
+  const inputStyle = {
+    width: '100%', padding: '10px 14px', borderRadius: 10,
+    border: '1px solid var(--border)', background: 'var(--surface)',
+    fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-body)',
+    outline: 'none', boxSizing: 'border-box'
+  }
+
+  const sources = [
+    { id: 'shopify', name: 'Shopify', short: 'SH', color: '#95bf47', desc: 'Orders, revenue, products, customers' },
+    { id: 'meta', name: 'Meta Ads', short: 'MA', color: '#1877f2', desc: 'Campaigns, spend, ROAS, CPA' },
+    { id: 'gads', name: 'Google Ads', short: 'GA', color: '#4285f4', desc: 'Search campaigns, keywords, spend' },
+    { id: 'ga', name: 'Google Analytics', short: 'G4', color: '#f9ab00', desc: 'Sessions, traffic sources, conversions' },
+    { id: 'klaviyo', name: 'Klaviyo', short: 'KL', color: '#f26722', desc: 'Email flows, open rates, revenue' },
+    { id: 'tt', name: 'TikTok Ads', short: 'TT', color: '#fe2c55', desc: 'Video campaigns, views, CTR' },
   ]
+
   return (
     <div className="page">
       <div className="page-head">
         <div>
           <h1>Sources</h1>
-          <div className="sub">{connected.length} connected · {allSources.length - connected.length} available</div>
+          <div className="sub">{connections.length} connected · {sources.length - connections.length} available</div>
         </div>
-        <div className="actions">
-          <button className="btn primary"><Icon name="plus" size={14}/> Add source</button>
-        </div>
+        {msg && <div style={{ padding: '8px 16px', borderRadius: 10, background: msg.startsWith('✓') ? 'color-mix(in oklab, var(--up) 12%, var(--surface))' : 'color-mix(in oklab, var(--dn) 12%, var(--surface))', color: msg.startsWith('✓') ? 'var(--up)' : 'var(--dn)', fontSize: 13, fontWeight: 600 }}>{msg}</div>}
       </div>
+
       <div className="conn-grid">
-        {allSources.map(s => {
-          const isConn = connected.includes(s.id)
+        {sources.map(s => {
+          const connected = isConnected(s.id)
+          const isOpen = connecting === s.id
           return (
-            <div key={s.id} className={'conn-card'+(isConn?' connected':'')}>
-              <div className="row tight" style={{ alignItems:'center' }}>
-                <SrcIcon icon={s.icon} size="lg">{s.short}</SrcIcon>
+            <div key={s.id} className={'conn-card' + (connected ? ' connected' : '')} style={{ gap: 12 }}>
+              <div className="row tight" style={{ alignItems: 'center' }}>
+                <div className="src lg" style={{ background: s.color, color: 'white', borderRadius: 10 }}>{s.short}</div>
                 <div>
-                  <div style={{ fontWeight:600, fontSize:14 }}>{s.name}</div>
-                  <div className="muted" style={{ fontSize:11.5 }}>{isConn ? 'Synced 3 min ago' : 'Not connected'}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{s.name}</div>
+                  <div className="muted" style={{ fontSize: 11.5 }}>{connected ? 'Connected ✓' : s.desc}</div>
                 </div>
               </div>
-              {isConn && (
-                <div style={{ height:40 }}>
-                  <Sparkline data={shapeSeries(50, 14, 'growth', s.id.charCodeAt(0))} height={40}/>
+
+              {isOpen && s.id === 'shopify' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <input style={inputStyle} placeholder="yourstore.myshopify.com" value={shopifyUrl} onChange={e => setShopifyUrl(e.target.value)}/>
+                  <input style={inputStyle} type="password" placeholder="shpat_••••••••••••••••" value={shopifyToken} onChange={e => setShopifyToken(e.target.value)}/>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
+                    <button className="btn sm primary" style={{ flex: 1 }} onClick={connectShopify} disabled={loading || !shopifyUrl || !shopifyToken}>
+                      {loading ? 'Connecting...' : 'Connect'}
+                    </button>
+                  </div>
                 </div>
               )}
-              <button className={'btn sm'+(isConn?' ghost':' primary')} style={{ justifyContent:'center' }}
-                onClick={() => setConnected(prev => isConn ? prev.filter(x => x!==s.id) : [...prev, s.id])}>
-                {isConn ? 'Disconnect' : 'Connect'}
-              </button>
+
+              {isOpen && s.id === 'meta' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <input style={inputStyle} placeholder="Meta Access Token" value={metaToken} onChange={e => setMetaToken(e.target.value)}/>
+                  <input style={inputStyle} placeholder="Ad Account ID (without act_)" value={metaAccountId} onChange={e => setMetaAccountId(e.target.value)}/>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
+                    <button className="btn sm primary" style={{ flex: 1 }} onClick={connectMeta} disabled={loading || !metaToken || !metaAccountId}>
+                      {loading ? 'Connecting...' : 'Connect'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!isOpen && (
+                <button
+                  className={'btn sm' + (connected ? ' ghost' : ' primary')}
+                  style={{ justifyContent: 'center' }}
+                  onClick={() => {
+                    if (s.id === 'shopify' || s.id === 'meta') setConnecting(s.id)
+                    else setMsg(`${s.name} integration coming soon`)
+                  }}
+                >
+                  {connected ? 'Manage' : 'Connect'}
+                </button>
+              )}
             </div>
           )
         })}
