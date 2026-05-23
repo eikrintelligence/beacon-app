@@ -9,6 +9,8 @@ import { ScreenFunnel, ScreenConnections, ScreenDashboards, ScreenGoals } from '
 import { ScreenAttribution } from './ScreenAttribution'
 import { ScreenAlerts } from './ScreenAlerts'
 import { ScreenSKU } from './ScreenSKU'
+import { ScreenSubscriptions } from './ScreenSubscriptions'
+import AcceptInvite from './AcceptInvite'
 import { getWorkspace, getRevenue, createWorkspace } from './api'
 
 const ACCENTS = ['#ec6b4e','#4a8c6e','#6b8cff','#a86bc4']
@@ -20,6 +22,7 @@ const NAV = [
   { id:'funnel',       label:'Funnel',         icon:'funnel',   group:'analysis' },
   { id:'attribution',  label:'Attribution',    icon:'grid',     group:'analysis' },
   { id:'sku',          label:'Products',       icon:'grid',     group:'analysis' },
+  { id:'subscriptions',label:'Subscriptions',  icon:'users',    group:'analysis' },
   { id:'cohorts',      label:'Cohorts',        icon:'users',    group:'analysis', soon:true },
   { id:'goals',        label:'Goals',          icon:'target',   group:'analysis' },
   { id:'alerts',       label:'Alerts',         icon:'bell',     group:'analysis' },
@@ -33,8 +36,8 @@ const TWEAK_DEFAULTS = {
 }
 
 const ROLE_NAV = {
-  admin:   ['home','ask','dashboards','funnel','attribution','sku','cohorts','goals','alerts','connections','settings'],
-  analyst: ['home','ask','dashboards','funnel','attribution','sku','goals','alerts','connections'],
+  admin:   ['home','ask','dashboards','funnel','attribution','sku','subscriptions','cohorts','goals','alerts','connections','settings'],
+  analyst: ['home','ask','dashboards','funnel','attribution','sku','subscriptions','goals','alerts','connections'],
   client:  ['home','goals'],
   agency:  ['home','dashboards','connections'],
 }
@@ -75,6 +78,9 @@ function AppShell() {
       </div>
     </div>
   )
+
+  const inviteToken = new URLSearchParams(window.location.search).get('invite')
+  if (inviteToken) return <AcceptInvite inviteToken={inviteToken}/>
 
   if (!user) return <Login onNeedOnboarding={(data) => setNeedOnboarding(data)}/>
 
@@ -266,6 +272,7 @@ function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token,
     case 'dashboards': return <ScreenDashboards shape={tweaks.shape}/>
     case 'goals': return <ScreenGoals workspaceData={workspaceData}/>
     case 'alerts': return <ScreenAlerts workspaceData={workspaceData} token={token} workspaceId={workspace?.id}/>
+    case 'subscriptions': return <ScreenSubscriptions token={token} workspaceId={workspace?.id}/>
     case 'settings': return <ScreenSettings token={token} workspaceId={workspace?.id} workspaceData={workspaceData}/>
     default: return <div className="page"><h1>Coming soon</h1></div>
   }

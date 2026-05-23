@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { useAuth } from './AuthContext'
 import { Icon } from './shared'
 
+const BASE = 'https://sja.eikr.ee/api'
+
 export default function Login({ onNeedOnboarding }) {
   const { login, register } = useAuth()
   const [mode, setMode] = useState('signin')
@@ -10,6 +12,8 @@ export default function Login({ onNeedOnboarding }) {
   const [fullName, setFullName] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [resetSent, setResetSent] = useState(false)
+  const [resetting, setResetting] = useState(false)
 
   async function handleSubmit() {
     setLoading(true)
@@ -25,6 +29,24 @@ export default function Login({ onNeedOnboarding }) {
       setError(e.message)
     }
     setLoading(false)
+  }
+
+  async function handleReset() {
+    if (!email) { setError('Enter your email address first'); return }
+    setResetting(true)
+    setError('')
+    try {
+      const res = await fetch(`${BASE}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      }).then(r => r.json())
+      if (res.error) throw new Error(res.error)
+      setResetSent(true)
+    } catch (e) {
+      setError(e.message)
+    }
+    setResetting(false)
   }
 
   const inputStyle = {
@@ -105,10 +127,25 @@ export default function Login({ onNeedOnboarding }) {
           {!loading && <Icon name="arrow-right" size={16}/>}
         </button>
 
+        {mode === 'signin' && (
+          <div style={{ textAlign: 'right', marginTop: 10 }}>
+            <button onClick={handleReset} disabled={resetting}
+              style={{ color: 'var(--ink-3)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13 }}>
+              {resetting ? 'Sending...' : 'Forgot password?'}
+            </button>
+          </div>
+        )}
+
+        {resetSent && (
+          <div style={{ fontSize: 13, marginTop: 10, padding: '10px 14px', background: 'color-mix(in oklab, var(--up) 10%, var(--surface))', borderRadius: 8, color: 'var(--up)' }}>
+            Check your email — we sent a password reset link.
+          </div>
+        )}
+
         <div style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: 'var(--ink-3)' }}>
           {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
           <button
-            onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError('') }}
+            onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); setResetSent(false) }}
             style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14 }}
           >
             {mode === 'signin' ? 'Sign up' : 'Sign in'}
