@@ -71,7 +71,8 @@ function AppShell() {
 
   if (!user) return <Login onNeedOnboarding={(data) => setNeedOnboarding(data)}/>
 
-  if (needOnboarding || !workspace) return (
+  const alreadyOnboarded = localStorage.getItem('sja_onboarded')
+  if (needOnboarding || (!workspace && !alreadyOnboarded)) return (
     <Onboarding
       token={token}
       userEmail={typeof needOnboarding === 'object' ? needOnboarding.email : user?.email}

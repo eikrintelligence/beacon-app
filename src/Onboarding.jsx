@@ -75,7 +75,6 @@ export default function Onboarding({ onComplete, token, userEmail }) {
 
   function handleComplete() {
     localStorage.setItem('sja_onboarded', 'true')
-    localStorage.setItem('sja_brand', brandName)
     onComplete()
   }
 
