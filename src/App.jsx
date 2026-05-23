@@ -230,12 +230,12 @@ function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token,
     case 'connections': return <ScreenConnections token={token} workspaceId={workspace?.id}/>
     case 'dashboards': return <ScreenDashboards shape={tweaks.shape}/>
     case 'goals': return <ScreenGoals workspaceData={workspaceData}/>
-    case 'settings': return <ScreenSettings token={token} workspace={workspace} workspaceData={workspaceData}/>
+    case 'settings': return <ScreenSettings token={token} workspaceId={workspace?.id} workspaceData={workspaceData}/>
     default: return <div className="page"><h1>Coming soon</h1></div>
   }
 }
 
-function ScreenSettings({ token, workspace, workspaceData }) {
+function ScreenSettings({ token, workspaceId, workspaceData }) {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState('analyst')
   const [inviting, setInviting] = useState(false)
@@ -245,7 +245,7 @@ function ScreenSettings({ token, workspace, workspaceData }) {
     setInviting(true)
     try {
       const { inviteMember } = await import('./api')
-      await inviteMember(token, workspace.id, inviteEmail, inviteRole)
+      await inviteMember(token, workspaceId, inviteEmail, inviteRole)
       setInviteMsg(`Invite sent to ${inviteEmail}`)
       setInviteEmail('')
     } catch (e) {
