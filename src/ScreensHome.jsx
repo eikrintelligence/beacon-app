@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react'
 import { PERSONAS, FEED, TAG_STYLES, shapeSeries, fmt, fmtChange, pctChange, Icon, SrcIcon, Sparkline, LineChart, KPI } from './shared'
 
-export function ScreenHome({ persona, shape, onNavigate, onAsk }) {
+export function ScreenHome({ persona, shape, onNavigate, onAsk, revenueData, workspaceData }) {
   const p = PERSONAS[persona] || PERSONAS.marketing
   const h = new Date().getHours()
   const greeting = h < 12 ? 'good morning' : h < 18 ? 'good afternoon' : 'good evening'
@@ -9,29 +9,39 @@ export function ScreenHome({ persona, shape, onNavigate, onAsk }) {
   const filtered = FEED.filter(f => filter === 'all' || f.tag === filter)
   const filters = [['all','All'],['spike','Spikes'],['drop','Drops'],['goal','Goals'],['risk','Risks'],['opportunity','Opps']]
 
-  // $500K pace tracker
-  const goal = 500000
-  const current = 84200
-  const weekNumber = 14
-  const totalWeeks = 34
-  const weeksLeft = totalWeeks - weekNumber
-  const pacePerWeek = current / weekNumber
+  // $500K pace tracker — use real data if available
+  const goal = workspaceData?.goals?.find(g => g.type === 'revenue')
+  const goalTarget = goal?.target || 500000
+  const goalStart = goal?.start_date || '2026-04-01'
+  const goalEnd = goal?.end_date || '2026-12-31'
+  const brandName = workspaceData?.workspace?.name || 'Dog Treat Naturals'
+
+  const startDate = new Date(goalStart)
+  const endDate = new Date(goalEnd)
+  const now = new Date()
+  const totalWeeks = Math.round((endDate - startDate) / (7 * 24 * 60 * 60 * 1000))
+  const weeksElapsed = Math.max(1, Math.round((now - startDate) / (7 * 24 * 60 * 60 * 1000)))
+  const weekNumber = weeksElapsed
+  const weeksLeft = Math.max(1, totalWeeks - weeksElapsed)
+
+  const current = revenueData?.allTimeRevenue || goal?.current || 0
+  const pacePerWeek = current / weeksElapsed
   const projected = Math.round(pacePerWeek * totalWeeks)
   const projectedK = Math.round(projected / 1000)
-  const neededPerWeek = Math.round((goal - current) / weeksLeft)
-  const onTrack = projected >= goal * 0.95
-  const ahead = projected >= goal
+  const neededPerWeek = Math.round((goalTarget - current) / weeksLeft)
+  const onTrack = projected >= goalTarget * 0.95
+  const ahead = projected >= goalTarget
   const statusColor = ahead ? 'var(--up)' : onTrack ? 'var(--accent-3)' : 'var(--dn)'
   const statusLabel = ahead ? '✓ On track' : onTrack ? '⚠ Watch closely' : '✗ Off pace'
-  const pct = Math.min(100, Math.round((current / goal) * 100))
-  const projPct = Math.min(100, Math.round((projected / goal) * 100))
+  const pct = Math.min(100, Math.round((current / goalTarget) * 100))
+  const projPct = Math.min(100, Math.round((projected / goalTarget) * 100))
 
   return (
     <div className="page">
       <div className="page-head">
         <div>
           <h1>{greeting}, Denisse</h1>
-          <div className="sub">Dog Treat Naturals · Week {weekNumber} of {totalWeeks} · <span style={{ color:'var(--accent)', fontWeight:600 }}>2 things need your attention</span></div>
+          <div className="sub">{brandName} · Week {weekNumber} of {totalWeeks} · <span style={{ color:'var(--accent)', fontWeight:600 }}>2 things need your attention</span></div>
         </div>
         <div className="actions">
           <div className="range"><span className="dot"/> Last 7 days <Icon name="chev-down" size={12}/></div>
