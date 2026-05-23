@@ -28,8 +28,8 @@ const TWEAK_DEFAULTS = {
 
 const ROLE_NAV = {
   admin:   ['home','ask','dashboards','funnel','cohorts','goals','connections','settings'],
-  analyst: ['home','ask','dashboards','funnel','goals'],
-  client:  ['home','dashboards'],
+  analyst: ['home','ask','dashboards','funnel','goals','connections'],
+  client:  ['home','ask','dashboards','goals'],
   agency:  ['home','dashboards'],
 }
 

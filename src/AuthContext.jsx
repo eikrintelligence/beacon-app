@@ -26,7 +26,7 @@ export function AuthProvider({ children }) {
           if (data.memberships?.length > 0) {
             const m = data.memberships[0]
             setWorkspace(m.workspaces)
-            setRole(m.role)
+            setRole(m.role || 'admin')
             localStorage.setItem('sja_workspace_id', m.workspaces.id)
           }
         })
