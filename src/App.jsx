@@ -49,10 +49,10 @@ function AppShell() {
 
   useEffect(() => {
     if (token && workspace) {
-      getWorkspace(token, workspace.id)
+      getWorkspace(token, workspace?.id)
         .then(data => setWorkspaceData(data))
         .catch(() => {})
-      getRevenue(token, workspace.id)
+      getRevenue(token, workspace?.id)
         .then(data => setRevenueData(data))
         .catch(() => {})
     }
