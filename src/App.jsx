@@ -143,7 +143,7 @@ function Sidebar({ route, navigate, persona, workspaceName, filteredNav, role, o
       <div className="workspace">
         <div className="avatar">{(workspaceName || 'W')[0].toUpperCase()}</div>
         <div className="ws-meta">
-          <div className="ws-name">{workspaceName || workspace?.name || 'Workspace'}</div>
+          <div className="ws-name">{workspaceName || 'Workspace'}</div>
           <div className="ws-plan">{role} · active</div>
         </div>
         <Icon name="chev-down" size={12}/>
