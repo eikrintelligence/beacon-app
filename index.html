@@ -5,6 +5,24 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sjá by EIKR</title>
+    <style>
+      @media (max-width: 768px) {
+        .app { grid-template-columns: 1fr !important; }
+        .side { position: fixed !important; top: 0; left: 0; bottom: 0; z-index: 100; transform: translateX(-100%); transition: transform 0.25s ease; box-shadow: 4px 0 32px rgba(0,0,0,0.18); }
+        .side[style*="--mob-open: 1"] { transform: translateX(0) !important; }
+        .mob-menu { display: flex !important; }
+        .mob-overlay { display: block !important; }
+        .grid-4 { grid-template-columns: 1fr 1fr !important; }
+        .grid-2 { grid-template-columns: 1fr !important; }
+        .conn-grid { grid-template-columns: 1fr !important; }
+        .page-head { flex-direction: column; align-items: flex-start !important; gap: 12px !important; }
+        .topbar { padding: 0 12px !important; }
+      }
+      @media (min-width: 769px) {
+        .mob-menu { display: none !important; }
+        .mob-overlay { display: none !important; }
+      }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />

@@ -1,7 +1,31 @@
 import React, { useState, useRef } from 'react'
 import { PERSONAS, FEED, TAG_STYLES, shapeSeries, fmt, fmtChange, pctChange, Icon, SrcIcon, Sparkline, LineChart, KPI } from './shared'
 
-export function ScreenHome({ persona, shape, onNavigate, onAsk, revenueData, workspaceData }) {
+function ClientView({ revenueData, workspaceData }) {
+  const goal = workspaceData?.goals?.find(g => g.type === 'revenue')
+  const target = goal?.target || 500000
+  const current = revenueData?.allTimeRevenue || goal?.current || 0
+  const pct = Math.min(100, Math.round((current / target) * 100))
+  const onTrack = current / target >= 0.9
+  return (
+    <div className="page" style={{ maxWidth: 560, margin: '0 auto' }}>
+      <div style={{ textAlign: 'center', padding: '48px 0 32px' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.07em', color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', marginBottom: 12 }}>REVENUE GOAL</div>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 72, letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 8 }}>${Math.round(current / 1000)}k</div>
+        <div style={{ fontSize: 20, color: 'var(--ink-3)', marginBottom: 24 }}>of ${Math.round(target / 1000)}k target</div>
+        <div style={{ height: 8, background: 'var(--surface-2)', borderRadius: 4, marginBottom: 16 }}>
+          <div style={{ height: '100%', width: pct + '%', background: onTrack ? 'var(--up)' : 'var(--accent)', borderRadius: 4, transition: 'width 0.6s' }}/>
+        </div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 20px', borderRadius: 999, background: onTrack ? 'color-mix(in oklab, var(--up) 12%, var(--surface))' : 'color-mix(in oklab, var(--dn) 10%, var(--surface))', color: onTrack ? 'var(--up)' : 'var(--dn)', fontWeight: 700, fontSize: 14 }}>
+          {onTrack ? '✓ On track' : '✗ Behind pace'} · {pct}% complete
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function ScreenHome({ persona, shape, onNavigate, onAsk, revenueData, workspaceData, role }) {
+  if (role === 'client') return <ClientView revenueData={revenueData} workspaceData={workspaceData}/>
   const p = PERSONAS[persona] || PERSONAS.marketing
   const h = new Date().getHours()
   const greeting = h < 12 ? 'good morning' : h < 18 ? 'good afternoon' : 'good evening'

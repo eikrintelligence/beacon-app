@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { FUNNEL, CHANNELS, shapeSeries, fmt, pctChange, Icon, SrcIcon, Sparkline, LineChart, BarChart, Donut, StackBar } from './shared'
 
-export function ScreenFunnel({ shape }) {
+export function ScreenFunnel({ shape, workspaceData }) {
   const [selectedIdx, setSelectedIdx] = useState(3)
   const [whatIf, setWhatIf] = useState(null)
 
@@ -31,6 +31,27 @@ export function ScreenFunnel({ shape }) {
     { id:'org', label:'Organic', v:11, color:'var(--accent-2)' },
     { id:'em', label:'Email', v:6, color:'var(--accent-3)' },
   ]
+
+  const hasConnections = workspaceData?.connections?.some(c => c.status === 'active')
+  if (!hasConnections) return (
+    <div className="page">
+      <div className="page-head">
+        <div><h1>The funnel</h1><div className="sub">Connect data sources to unlock real funnel data</div></div>
+      </div>
+      <div style={{ padding: '64px 24px', textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
+        <div style={{ fontSize: 56, marginBottom: 20 }}>🔗</div>
+        <h2 style={{ marginBottom: 10 }}>No data sources connected</h2>
+        <div style={{ color: 'var(--ink-3)', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
+          Connect Shopify and your ad platforms to see a real customer journey from impression to order — with drop-off rates, conversion benchmarks, and what-if simulations.
+        </div>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {['Shopify', 'Meta Ads', 'Google Ads', 'TikTok'].map(p => (
+            <span key={p} style={{ padding: '6px 14px', borderRadius: 999, background: 'var(--surface-2)', fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }}>{p}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div className="page">
@@ -178,6 +199,8 @@ export function ScreenConnections({ token, workspaceId }) {
   const [metaAccountId, setMetaAccountId] = useState('')
   const [shopifyUrl, setShopifyUrl] = useState('')
   const [shopifyToken, setShopifyToken] = useState('')
+  const [ga4PropertyId, setGa4PropertyId] = useState('')
+  const [klaviyoKey, setKlaviyoKey] = useState('')
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -232,6 +255,42 @@ export function ScreenConnections({ token, workspaceId }) {
       })
       const data = await res.json()
       if (data.success) { setMsg('✓ Meta Ads connected!'); setConnecting(null) }
+      else setMsg('Error: ' + data.error)
+    } catch (e) {
+      setMsg('Connection failed: ' + e.message)
+    }
+    setLoading(false)
+  }
+
+  async function connectGA4() {
+    setLoading(true)
+    setMsg('')
+    try {
+      const res = await fetch('https://sja.eikr.ee/api/connections/ga4', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ workspace_id: workspaceId, property_id: ga4PropertyId })
+      })
+      const data = await res.json()
+      if (data.success) { setMsg('✓ Google Analytics connected!'); setConnecting(null) }
+      else setMsg('Error: ' + data.error)
+    } catch (e) {
+      setMsg('Connection failed: ' + e.message)
+    }
+    setLoading(false)
+  }
+
+  async function connectKlaviyo() {
+    setLoading(true)
+    setMsg('')
+    try {
+      const res = await fetch('https://sja.eikr.ee/api/connections/klaviyo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ workspace_id: workspaceId, api_key: klaviyoKey })
+      })
+      const data = await res.json()
+      if (data.success) { setMsg('✓ Klaviyo connected!'); setConnecting(null) }
       else setMsg('Error: ' + data.error)
     } catch (e) {
       setMsg('Connection failed: ' + e.message)
@@ -305,12 +364,36 @@ export function ScreenConnections({ token, workspaceId }) {
                 </div>
               )}
 
+              {isOpen && s.id === 'ga' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <input style={inputStyle} placeholder="GA4 Property ID (e.g. 123456789)" value={ga4PropertyId} onChange={e => setGa4PropertyId(e.target.value)}/>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
+                    <button className="btn sm primary" style={{ flex: 1 }} onClick={connectGA4} disabled={loading || !ga4PropertyId}>
+                      {loading ? 'Connecting...' : 'Connect'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {isOpen && s.id === 'klaviyo' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <input style={inputStyle} type="password" placeholder="Klaviyo Private API Key" value={klaviyoKey} onChange={e => setKlaviyoKey(e.target.value)}/>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
+                    <button className="btn sm primary" style={{ flex: 1 }} onClick={connectKlaviyo} disabled={loading || !klaviyoKey}>
+                      {loading ? 'Connecting...' : 'Connect'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {!isOpen && (
                 <button
                   className={'btn sm' + (connected ? ' ghost' : ' primary')}
                   style={{ justifyContent: 'center' }}
                   onClick={() => {
-                    if (s.id === 'shopify' || s.id === 'meta') setConnecting(s.id)
+                    if (['shopify', 'meta', 'ga', 'klaviyo'].includes(s.id)) setConnecting(s.id)
                     else setMsg(`${s.name} integration coming soon`)
                   }}
                 >

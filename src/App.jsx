@@ -6,19 +6,23 @@ import { PERSONAS, Icon } from './shared'
 import { useTweaks, TweaksPanel, TweakSection, TweakRadio, TweakColor, TweakSelect } from './TweaksPanel'
 import { ScreenHome, ScreenAsk } from './ScreensHome'
 import { ScreenFunnel, ScreenConnections, ScreenDashboards, ScreenGoals } from './ScreensDeep'
+import { ScreenAttribution } from './ScreenAttribution'
+import { ScreenAlerts } from './ScreenAlerts'
 import { getWorkspace, getRevenue, createWorkspace } from './api'
 
 const ACCENTS = ['#ec6b4e','#4a8c6e','#6b8cff','#a86bc4']
 
 const NAV = [
-  { id:'home',        label:'Today',          icon:'home',     group:'overview' },
-  { id:'ask',         label:'Ask Sjá',        icon:'sparkles', group:'overview', badge:'new' },
-  { id:'dashboards',  label:'Dashboards',     icon:'grid',     group:'overview' },
-  { id:'funnel',      label:'Funnel',         icon:'funnel',   group:'analysis' },
-  { id:'cohorts',     label:'Cohorts',        icon:'users',    group:'analysis', soon:true },
-  { id:'goals',       label:'Goals & alerts', icon:'target',   group:'analysis' },
-  { id:'connections', label:'Sources',        icon:'plug',     group:'admin', count:5 },
-  { id:'settings',    label:'Settings',       icon:'gear',     group:'admin' },
+  { id:'home',         label:'Today',          icon:'home',     group:'overview' },
+  { id:'ask',          label:'Ask Sjá',        icon:'sparkles', group:'overview', badge:'new' },
+  { id:'dashboards',   label:'Dashboards',     icon:'grid',     group:'overview' },
+  { id:'funnel',       label:'Funnel',         icon:'funnel',   group:'analysis' },
+  { id:'attribution',  label:'Attribution',    icon:'grid',     group:'analysis' },
+  { id:'cohorts',      label:'Cohorts',        icon:'users',    group:'analysis', soon:true },
+  { id:'goals',        label:'Goals',          icon:'target',   group:'analysis' },
+  { id:'alerts',       label:'Alerts',         icon:'bell',     group:'analysis' },
+  { id:'connections',  label:'Sources',        icon:'plug',     group:'admin' },
+  { id:'settings',     label:'Settings',       icon:'gear',     group:'admin' },
 ]
 
 const TWEAK_DEFAULTS = {
@@ -27,10 +31,10 @@ const TWEAK_DEFAULTS = {
 }
 
 const ROLE_NAV = {
-  admin:   ['home','ask','dashboards','funnel','cohorts','goals','connections','settings'],
-  analyst: ['home','ask','dashboards','funnel','goals','connections'],
-  client:  ['home','ask','dashboards','goals'],
-  agency:  ['home','dashboards'],
+  admin:   ['home','ask','dashboards','funnel','attribution','cohorts','goals','alerts','connections','settings'],
+  analyst: ['home','ask','dashboards','funnel','attribution','goals','alerts','connections'],
+  client:  ['home','goals'],
+  agency:  ['home','dashboards','connections'],
 }
 
 function AppShell() {
@@ -40,6 +44,7 @@ function AppShell() {
   const [needOnboarding, setNeedOnboarding] = useState(false)
   const [revenueData, setRevenueData] = useState(null)
   const [workspaceData, setWorkspaceData] = useState(null)
+  const [sideOpen, setSideOpen] = useState(false)
 
   useEffect(() => {
     document.documentElement.dataset.theme = tweaks.theme
@@ -89,12 +94,13 @@ function AppShell() {
 
   return (
     <div className="app">
-      <Sidebar route={route} navigate={navigate} persona={persona}
+      {sideOpen && <div onClick={() => setSideOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:99, display:'none' }} className="mob-overlay"/>}
+      <Sidebar route={route} navigate={(n,p) => { navigate(n,p); setSideOpen(false) }} persona={persona}
         workspaceName={workspace?.name} filteredNav={filteredNav}
-        role={role} onLogout={logout}/>
+        role={role} onLogout={logout} sideOpen={sideOpen} setSideOpen={setSideOpen}/>
       <div className="main">
         <Topbar route={route} navigate={navigate} tweaks={tweaks} setTweak={setTweak}
-          profile={profile} onLogout={logout}/>
+          profile={profile} onLogout={logout} setSideOpen={setSideOpen}/>
         <RouteView route={route} navigate={navigate} tweaks={tweaks}
           revenueData={revenueData} workspaceData={workspaceData}
           token={token} workspace={workspace} role={role}/>
@@ -132,10 +138,10 @@ function AppShell() {
   )
 }
 
-function Sidebar({ route, navigate, persona, workspaceName, filteredNav, role, onLogout }) {
+function Sidebar({ route, navigate, persona, workspaceName, filteredNav, role, onLogout, sideOpen, setSideOpen }) {
   const groups = ['overview','analysis','admin']
   return (
-    <aside className="side">
+    <aside className="side" style={{ '--mob-open': sideOpen ? '1' : '0' }}>
       <div className="brand">
         <div className="brand-mark"/>
         <div className="brand-name">sjá</div>
@@ -187,11 +193,14 @@ function Sidebar({ route, navigate, persona, workspaceName, filteredNav, role, o
   )
 }
 
-function Topbar({ route, navigate, tweaks, setTweak, profile, onLogout }) {
+function Topbar({ route, navigate, tweaks, setTweak, profile, onLogout, setSideOpen }) {
   const meta = NAV.find(n => n.id===route.name)
   const initials = profile?.full_name?.split(' ').map(n=>n[0]).join('').slice(0,2) || 'D'
   return (
     <div className="topbar">
+      <button className="btn ghost sm mob-menu" onClick={() => setSideOpen(s => !s)} style={{ marginRight: 4 }}>
+        <Icon name="menu" size={18}/>
+      </button>
       <div className="crumbs">
         <span>Workspace</span>
         <span className="sep">/</span>
@@ -226,10 +235,12 @@ function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token,
   switch (route.name) {
     case 'home': return <ScreenHome persona={tweaks.persona} shape={tweaks.shape} onNavigate={navigate} onAsk={() => navigate('ask')} revenueData={revenueData} workspaceData={workspaceData} role={role}/>
     case 'ask': return <ScreenAsk persona={tweaks.persona} shape={tweaks.shape} token={token} workspaceId={workspace?.id}/>
-    case 'funnel': return <ScreenFunnel shape={tweaks.shape}/>
+    case 'funnel': return <ScreenFunnel shape={tweaks.shape} workspaceData={workspaceData}/>
+    case 'attribution': return <ScreenAttribution/>
     case 'connections': return <ScreenConnections token={token} workspaceId={workspace?.id}/>
     case 'dashboards': return <ScreenDashboards shape={tweaks.shape}/>
     case 'goals': return <ScreenGoals workspaceData={workspaceData}/>
+    case 'alerts': return <ScreenAlerts workspaceData={workspaceData} token={token} workspaceId={workspace?.id}/>
     case 'settings': return <ScreenSettings token={token} workspaceId={workspace?.id} workspaceData={workspaceData}/>
     default: return <div className="page"><h1>Coming soon</h1></div>
   }
