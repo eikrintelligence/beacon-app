@@ -143,7 +143,7 @@ function Sidebar({ route, navigate, persona, workspaceName, filteredNav, role, o
       <div className="workspace">
         <div className="avatar">{(workspaceName || 'W')[0].toUpperCase()}</div>
         <div className="ws-meta">
-          <div className="ws-name">{workspaceName || 'Workspace'}</div>
+          <div className="ws-name">{workspaceName || workspace?.name || 'Workspace'}</div>
           <div className="ws-plan">{role} · active</div>
         </div>
         <Icon name="chev-down" size={12}/>
@@ -210,6 +210,9 @@ function Topbar({ route, navigate, tweaks, setTweak, profile, onLogout }) {
       <button className="btn ghost sm" title="Notifications" style={{ position:'relative' }}>
         <Icon name="bell" size={16}/>
         <span style={{ position:'absolute', top:4, right:4, width:7, height:7, borderRadius:'50%', background:'var(--accent)', boxShadow:'0 0 0 2px var(--surface)' }}/>
+      </button>
+      <button className="btn ghost sm" title="Morning digest" onClick={() => navigate('ask')}>
+        <Icon name="zap" size={16}/>
       </button>
       <div style={{ width:30, height:30, borderRadius:9, background:'linear-gradient(135deg,var(--accent),var(--accent-3))', color:'white', display:'grid', placeItems:'center', fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, marginLeft:4, cursor:'pointer' }}
         title={profile?.full_name || 'Profile'}>
