@@ -15,7 +15,12 @@ export function AuthProvider({ children }) {
     if (token) {
       getMe(token)
         .then(data => {
-          if (data.error) { logout(); return }
+          if (data.error) {
+            localStorage.clear()
+            setToken(null)
+            setLoading(false)
+            return
+          }
           setUser(data.user)
           setProfile(data.profile)
           if (data.memberships?.length > 0) {
@@ -25,7 +30,10 @@ export function AuthProvider({ children }) {
             localStorage.setItem('sja_workspace_id', m.workspaces.id)
           }
         })
-        .catch(() => logout())
+        .catch(() => {
+          localStorage.clear()
+          setLoading(false)
+        })
         .finally(() => setLoading(false))
     } else {
       setLoading(false)
