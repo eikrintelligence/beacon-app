@@ -3,6 +3,8 @@ import { PERSONAS, Icon } from './shared'
 import { useTweaks, TweaksPanel, TweakSection, TweakRadio, TweakColor, TweakSelect } from './TweaksPanel'
 import { ScreenHome, ScreenAsk } from './ScreensHome'
 import { ScreenFunnel, ScreenConnections, ScreenDashboards, ScreenGoals } from './ScreensDeep'
+import Onboarding from './Onboarding'
+import { getWorkspace, getRevenue } from './api'
 
 const ACCENTS = ['#ec6b4e','#4a8c6e','#6b8cff','#a86bc4']
 
@@ -27,7 +29,10 @@ const TWEAK_DEFAULTS = {
 
 export default function App() {
   const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS)
-  const [route, setRoute] = useState({ name:'home', params:{} })
+  const [route, setRoute] = useState({ name: 'home', params: {} })
+  const [onboarded, setOnboarded] = useState(() => !!localStorage.getItem('sja_onboarded'))
+  const [revenueData, setRevenueData] = useState(null)
+  const [workspaceData, setWorkspaceData] = useState(null)
 
   useEffect(() => {
     document.documentElement.dataset.theme = tweaks.theme
@@ -35,8 +40,16 @@ export default function App() {
     document.documentElement.style.setProperty('--accent', tweaks.accent)
   }, [tweaks.theme, tweaks.density, tweaks.accent])
 
-  function navigate(name, params = {}) { setRoute({ name, params }) }
+  useEffect(() => {
+    if (onboarded) {
+      getWorkspace().then(data => setWorkspaceData(data)).catch(() => {})
+      getRevenue().then(data => setRevenueData(data)).catch(() => {})
+    }
+  }, [onboarded])
 
+  if (!onboarded) return <Onboarding onComplete={() => setOnboarded(true)} />
+
+  function navigate(name, params = {}) { setRoute({ name, params }) }
   const persona = PERSONAS[tweaks.persona] || PERSONAS.marketing
 
   return (
@@ -44,7 +57,7 @@ export default function App() {
       <Sidebar route={route} navigate={navigate} persona={persona}/>
       <div className="main">
         <Topbar route={route} navigate={navigate} tweaks={tweaks} setTweak={setTweak}/>
-        <RouteView route={route} navigate={navigate} tweaks={tweaks}/>
+        <RouteView route={route} navigate={navigate} tweaks={tweaks} revenueData={revenueData} workspaceData={workspaceData}/>
       </div>
       <TweaksPanel title="Tweaks">
         <TweakSection label="Theme">
@@ -152,14 +165,14 @@ function Topbar({ route, navigate, tweaks, setTweak }) {
   )
 }
 
-function RouteView({ route, navigate, tweaks }) {
+function RouteView({ route, navigate, tweaks, revenueData, workspaceData }) {
   switch (route.name) {
-    case 'home':        return <ScreenHome persona={tweaks.persona} shape={tweaks.shape} onNavigate={navigate} onAsk={() => navigate('ask')}/>
-    case 'ask':         return <ScreenAsk persona={tweaks.persona} shape={tweaks.shape}/>
-    case 'funnel':      return <ScreenFunnel shape={tweaks.shape}/>
+    case 'home': return <ScreenHome persona={tweaks.persona} shape={tweaks.shape} onNavigate={navigate} onAsk={() => navigate('ask')} revenueData={revenueData} workspaceData={workspaceData}/>
+    case 'ask': return <ScreenAsk persona={tweaks.persona} shape={tweaks.shape}/>
+    case 'funnel': return <ScreenFunnel shape={tweaks.shape}/>
     case 'connections': return <ScreenConnections/>
-    case 'dashboards':  return <ScreenDashboards shape={tweaks.shape}/>
-    case 'goals':       return <ScreenGoals/>
-    default:            return <div className="page"><h1>Coming soon</h1></div>
+    case 'dashboards': return <ScreenDashboards shape={tweaks.shape}/>
+    case 'goals': return <ScreenGoals/>
+    default: return <div className="page"><h1>Coming soon</h1></div>
   }
 }
