@@ -278,9 +278,9 @@ export function ScreenAsk({ persona, shape, token, workspaceId }) {
                 </div>
                 <span className="tag">SJÁ</span>
               </div>
-              <div style={{ fontSize:14.5, lineHeight:1.7, color:'var(--ink-2)', whiteSpace:'pre-wrap' }}>
-                {t.a}
-              </div>
+              <div style={{ fontSize:14.5, lineHeight:1.7, color:'var(--ink-2)' }}
+                dangerouslySetInnerHTML={{ __html: t.a.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }}
+              />
               <div className="row between" style={{ marginTop:14, paddingTop:12, borderTop:'1px solid var(--border)' }}>
                 <div className="row tight">
                   <button className="btn sm ghost"><Icon name="share" size={12}/></button>

@@ -80,7 +80,7 @@ function AppShell() {
     />
   )
 
-  const allowedNav = ROLE_NAV[role] || ROLE_NAV.client
+  const allowedNav = ROLE_NAV[role] || ROLE_NAV.admin
   const filteredNav = NAV.filter(n => allowedNav.includes(n.id))
 
   function navigate(name, params = {}) { setRoute({ name, params }) }
