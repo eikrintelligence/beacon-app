@@ -7,6 +7,9 @@ import { useTweaks, TweaksPanel, TweakSection, TweakRadio, TweakColor, TweakSele
 import { ScreenHome, ScreenAsk } from './ScreensHome'
 import { ScreenFunnel, ScreenConnections, ScreenDashboards, ScreenGoals } from './ScreensDeep'
 import { ScreenAttribution } from './ScreenAttribution'
+import { ScreenEmail } from './ScreenEmail'
+import { ScreenSocial } from './ScreenSocial'
+import { ScreenWebsite } from './ScreenWebsite'
 import { ScreenAlerts } from './ScreenAlerts'
 import { ScreenSKU } from './ScreenSKU'
 import { ScreenSubscriptions } from './ScreenSubscriptions'
@@ -27,6 +30,9 @@ const NAV = [
   { id:'cohorts',      label:'Cohorts',        icon:'users',    group:'analysis', soon:true },
   { id:'goals',        label:'Goals',          icon:'target',   group:'analysis' },
   { id:'alerts',       label:'Alerts',         icon:'bell',     group:'analysis' },
+  { id:'email',        label:'Email & SMS',   icon:'bell',     group:'analysis' },
+  { id:'social',       label:'Social',        icon:'users',    group:'analysis' },
+  { id:'website',      label:'Website',       icon:'grid',     group:'analysis' },
   { id:'connections',  label:'Sources',        icon:'plug',     group:'admin' },
   { id:'settings',     label:'Settings',       icon:'gear',     group:'admin' },
 ]
@@ -37,10 +43,10 @@ const TWEAK_DEFAULTS = {
 }
 
 const ROLE_NAV = {
-  admin:   ['home','ask','dashboards','funnel','attribution','sku','subscriptions','cohorts','goals','alerts','connections','settings'],
-  analyst: ['home','ask','dashboards','funnel','attribution','sku','subscriptions','goals','alerts','connections'],
+  admin:   ['home','ask','dashboards','funnel','attribution','sku','subscriptions','cohorts','goals','alerts','email','social','website','connections','settings'],
+  analyst: ['home','ask','dashboards','funnel','attribution','sku','subscriptions','goals','alerts','email','social','website','connections'],
   client:  ['home','goals'],
-  agency:  ['home','dashboards','connections'],
+  agency:  ['home','dashboards','social','connections'],
 }
 
 function AppShell() {
@@ -280,6 +286,9 @@ function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token,
     case 'goals': return <ScreenGoals workspaceData={workspaceData}/>
     case 'alerts': return <ScreenAlerts workspaceData={workspaceData} token={token} workspaceId={workspace?.id}/>
     case 'subscriptions': return <ScreenSubscriptions token={token} workspaceId={workspace?.id}/>
+    case 'email': return <ScreenEmail token={token} workspaceId={workspace?.id}/>
+    case 'social': return <ScreenSocial token={token} workspaceId={workspace?.id}/>
+    case 'website': return <ScreenWebsite token={token} workspaceId={workspace?.id}/>
     case 'settings': return <ScreenSettings token={token} workspaceId={workspace?.id} workspaceData={workspaceData}/>
     default: return <div className="page"><h1>Coming soon</h1></div>
   }

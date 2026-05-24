@@ -201,6 +201,11 @@ export function ScreenConnections({ token, workspaceId }) {
   const [shopifyToken, setShopifyToken] = useState('')
   const [ga4PropertyId, setGa4PropertyId] = useState('')
   const [klaviyoKey, setKlaviyoKey] = useState('')
+  const [gadsCustomerId, setGadsCustomerId] = useState('')
+  const [gadsDeveloperToken, setGadsDeveloperToken] = useState('')
+  const [gadsClientId, setGadsClientId] = useState('')
+  const [gadsClientSecret, setGadsClientSecret] = useState('')
+  const [gadsRefreshToken, setGadsRefreshToken] = useState('')
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -266,7 +271,7 @@ export function ScreenConnections({ token, workspaceId }) {
     setLoading(true)
     setMsg('')
     try {
-      const res = await fetch('https://sja.eikr.ee/api/connections/ga4', {
+      const res = await fetch('https://sja.eikr.ee/api/ga4/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ workspace_id: workspaceId, property_id: ga4PropertyId })
@@ -280,11 +285,26 @@ export function ScreenConnections({ token, workspaceId }) {
     setLoading(false)
   }
 
+  async function connectGoogleAds() {
+    setLoading(true); setMsg('')
+    try {
+      const res = await fetch('https://sja.eikr.ee/api/googleads/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ workspace_id: workspaceId, customer_id: gadsCustomerId, developer_token: gadsDeveloperToken, client_id: gadsClientId, client_secret: gadsClientSecret, refresh_token: gadsRefreshToken })
+      })
+      const data = await res.json()
+      if (data.success) { setMsg('✓ Google Ads connected!'); setConnecting(null) }
+      else setMsg('Error: ' + data.error)
+    } catch (e) { setMsg('Connection failed: ' + e.message) }
+    setLoading(false)
+  }
+
   async function connectKlaviyo() {
     setLoading(true)
     setMsg('')
     try {
-      const res = await fetch('https://sja.eikr.ee/api/connections/klaviyo', {
+      const res = await fetch('https://sja.eikr.ee/api/klaviyo/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ workspace_id: workspaceId, api_key: klaviyoKey })
@@ -364,6 +384,20 @@ export function ScreenConnections({ token, workspaceId }) {
                 </div>
               )}
 
+              {isOpen && s.id === 'gads' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <input style={inputStyle} placeholder="Customer ID (e.g. 123-456-7890)" value={gadsCustomerId} onChange={e => setGadsCustomerId(e.target.value)}/>
+                  <input style={inputStyle} placeholder="Developer Token" value={gadsDeveloperToken} onChange={e => setGadsDeveloperToken(e.target.value)}/>
+                  <input style={inputStyle} placeholder="OAuth Client ID" value={gadsClientId} onChange={e => setGadsClientId(e.target.value)}/>
+                  <input style={inputStyle} type="password" placeholder="OAuth Client Secret" value={gadsClientSecret} onChange={e => setGadsClientSecret(e.target.value)}/>
+                  <input style={inputStyle} type="password" placeholder="Refresh Token" value={gadsRefreshToken} onChange={e => setGadsRefreshToken(e.target.value)}/>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
+                    <button className="btn sm primary" style={{ flex: 1 }} onClick={connectGoogleAds} disabled={loading || !gadsCustomerId}>{loading ? 'Connecting...' : 'Connect'}</button>
+                  </div>
+                </div>
+              )}
+
               {isOpen && s.id === 'ga' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <input style={inputStyle} placeholder="GA4 Property ID (e.g. 123456789)" value={ga4PropertyId} onChange={e => setGa4PropertyId(e.target.value)}/>
@@ -388,12 +422,22 @@ export function ScreenConnections({ token, workspaceId }) {
                 </div>
               )}
 
+              {isOpen && s.id === 'tt' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 8, fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+                    TikTok API access requires approval. Use manual import while waiting — paste spend/impressions/clicks/conversions data via Ask Sjá.
+                  </div>
+                  <button className="btn sm primary" style={{ justifyContent: 'center' }} onClick={() => { setMsg('Manual import ready: use Ask Sjá to paste your TikTok Ads Manager CSV export'); setConnecting(null) }}>Set up manual import</button>
+                  <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
+                </div>
+              )}
+
               {!isOpen && (
                 <button
                   className={'btn sm' + (connected ? ' ghost' : ' primary')}
                   style={{ justifyContent: 'center' }}
                   onClick={() => {
-                    if (['shopify', 'meta', 'ga', 'klaviyo'].includes(s.id)) setConnecting(s.id)
+                    if (['shopify', 'meta', 'ga', 'gads', 'klaviyo', 'tt'].includes(s.id)) setConnecting(s.id)
                     else setMsg(`${s.name} integration coming soon`)
                   }}
                 >
