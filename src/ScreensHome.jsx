@@ -187,14 +187,35 @@ export function ScreenHome({ persona, shape, onNavigate, onAsk, revenueData, wor
         </div>
       )}
 
-      {/* ASK SJÁ PROMPT */}
+      {/* NO CONNECTIONS BANNER */}
+      {(!workspaceData?.connections || workspaceData.connections.length === 0) && (
+        <div style={{
+          padding: '16px 20px', borderRadius: 12,
+          background: 'color-mix(in oklab, var(--accent) 10%, var(--surface))',
+          border: '1px solid color-mix(in oklab, var(--accent) 25%, var(--surface))',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 20 }}>🔌</span>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>Connect your data sources to see real metrics</div>
+              <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 2 }}>Shopify, Meta Ads, Google Ads, GA4, Klaviyo and more</div>
+            </div>
+          </div>
+          <button className='btn primary' onClick={() => onNavigate('connections')} style={{ flexShrink: 0 }}>
+            Connect sources →
+          </button>
+        </div>
+      )}
+
+      {/* ASK FARO PROMPT */}
       <div className="fade-in" style={{ marginBottom: 4, animationDelay: '40ms' }}>
         <button className="prompt-bar" onClick={onAsk} style={{ width: '100%', textAlign: 'left', cursor: 'pointer' }}>
           <span style={{ width: 26, height: 26, borderRadius: 8, background: 'linear-gradient(135deg,var(--accent),var(--accent-3))', display: 'grid', placeItems: 'center', color: 'white', flexShrink: 0 }}>
             <Icon name="sparkles" size={14}/>
           </span>
           <span style={{ color: 'var(--ink-3)', fontSize: 15, flex: 1 }}>
-            Ask Sjá · <i style={{ color: 'var(--ink-4)' }}>"are we on pace for $500K this week?"</i>
+            Ask Faro · <i style={{ color: 'var(--ink-4)' }}>"are we on pace for $500K this week?"</i>
           </span>
           <kbd style={{ fontFamily: 'var(--font-mono)', fontSize: 10, background: 'var(--surface-2)', border: '1px solid var(--border)', padding: '2px 6px', borderRadius: 4, color: 'var(--ink-3)' }}>/</kbd>
         </button>
@@ -302,7 +323,7 @@ export function ScreenAsk({ persona, shape, token, workspaceId }) {
         { role: 'assistant', content: result.answer }
       ])
     } catch (err) {
-      setThreads(prev => [...prev, { q: question, a: 'Sorry — could not reach Sjá backend. Check your connection.' }])
+      setThreads(prev => [...prev, { q: question, a: 'Sorry — could not reach Faro backend. Check your connection.' }])
     }
     setLoading(false)
   }
@@ -315,7 +336,7 @@ export function ScreenAsk({ persona, shape, token, workspaceId }) {
             <Icon name="sparkles" size={18} strokeWidth={1.8}/>
           </div>
           <div>
-            <h1 style={{ fontSize:28 }}>Ask Sjá</h1>
+            <h1 style={{ fontSize:28 }}>Ask Faro</h1>
             <div className="sub">Plain-English questions across all your data. Pin answers to a dashboard.</div>
           </div>
         </div>
@@ -349,7 +370,7 @@ export function ScreenAsk({ persona, shape, token, workspaceId }) {
                 <div style={{ width:22, height:22, background:'var(--accent)', borderRadius:6, display:'grid', placeItems:'center', flexShrink:0 }}>
                   <Icon name="sparkles" size={12}/>
                 </div>
-                <span className="tag">SJÁ</span>
+                <span className="tag">FARO</span>
               </div>
               <div style={{ fontSize:14.5, lineHeight:1.7, color:'var(--ink-2)' }}
                 dangerouslySetInnerHTML={{ __html: t.a.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }}
@@ -386,7 +407,7 @@ export function ScreenAsk({ persona, shape, token, workspaceId }) {
           </button>
         </div>
         <div style={{ textAlign:'center', marginTop:6, fontSize:11, color:'var(--ink-4)' }}>
-          / to focus · ↵ to send · <span style={{ color:'var(--accent)' }}>Sjá can be wrong</span> — verify big decisions
+          / to focus · ↵ to send · <span style={{ color:'var(--accent)' }}>Faro can be wrong</span> — verify big decisions
         </div>
       </div>
     </div>

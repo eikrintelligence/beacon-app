@@ -76,7 +76,7 @@ export default function Onboarding({ onComplete, token, userEmail }) {
             <span style={{ color: 'var(--bg)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18 }}>s</span>
           </div>
           <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, letterSpacing: '-0.02em' }}>
-            sjá <span style={{ color: 'var(--ink-3)', fontWeight: 400 }}>by EIKR</span>
+            faro <span style={{ color: 'var(--ink-3)', fontWeight: 400 }}>by EIKR</span>
           </span>
         </div>
 
@@ -96,7 +96,7 @@ export default function Onboarding({ onComplete, token, userEmail }) {
           <div className="fade-in">
             <h2 style={{ fontSize: 32, marginBottom: 8 }}>Your workspace</h2>
             <p style={{ color: 'var(--ink-3)', marginBottom: 32, fontSize: 15 }}>
-              Tell Sjá about the business you're managing.
+              Tell Faro about the business you're managing.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -157,7 +157,7 @@ export default function Onboarding({ onComplete, token, userEmail }) {
           <div className="fade-in">
             <h2 style={{ fontSize: 32, marginBottom: 8 }}>Set your goal</h2>
             <p style={{ color: 'var(--ink-3)', marginBottom: 32, fontSize: 15 }}>
-              Sjá will track every metric against this target and alert you when you're off pace.
+              Faro will track every metric against this target and alert you when you're off pace.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -241,7 +241,7 @@ export default function Onboarding({ onComplete, token, userEmail }) {
                 onClick={handleGoalNext}
                 disabled={loading || !goalAmount || !startDate || !endDate}
               >
-                {loading ? 'Saving...' : 'Launch Sjá'} <Icon name="arrow-right" size={16}/>
+                {loading ? 'Saving...' : 'Launch Faro'} <Icon name="arrow-right" size={16}/>
               </button>
             </div>
           </div>

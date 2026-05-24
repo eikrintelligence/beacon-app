@@ -122,7 +122,7 @@ export function ScreenAlerts({ workspaceData, token }) {
       <div className="card">
         <h3 style={{ marginBottom: 4 }}>Alert thresholds</h3>
         <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 20 }}>
-          Sjá monitors these 9 conditions for Dog Treat Naturals and fires once per breach until dismissed
+          Faro monitors these 9 conditions for Dog Treat Naturals and fires once per breach until dismissed
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>

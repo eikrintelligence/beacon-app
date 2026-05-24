@@ -83,7 +83,7 @@ export default function Login({ onNeedOnboarding }) {
             <span style={{ color: 'var(--bg)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18 }}>s</span>
           </div>
           <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, letterSpacing: '-0.02em' }}>
-            sjá <span style={{ color: 'var(--ink-3)', fontWeight: 400 }}>by EIKR</span>
+            faro <span style={{ color: 'var(--ink-3)', fontWeight: 400 }}>by EIKR</span>
           </span>
         </div>
 

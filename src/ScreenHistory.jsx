@@ -213,7 +213,7 @@ export default function ScreenHistory({ workspaceId }) {
         <div>
           <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>Year-over-Year</div>
           <div style={{ color: '#94a3b8', fontSize: 13 }}>
-            YoY comparison unlocks once 12+ months of data has accumulated. Keep Sjá connected to build your full history.
+            YoY comparison unlocks once 12+ months of data has accumulated. Keep Faro connected to build your full history.
           </div>
         </div>
       </div>

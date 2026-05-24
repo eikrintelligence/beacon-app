@@ -21,7 +21,7 @@ const ACCENTS = ['#ec6b4e','#4a8c6e','#6b8cff','#a86bc4']
 
 const NAV = [
   { id:'home',         label:'Today',          icon:'home',     group:'overview' },
-  { id:'ask',          label:'Ask Sjá',        icon:'sparkles', group:'overview', badge:'new' },
+  { id:'ask',          label:'Ask Faro',        icon:'sparkles', group:'overview', badge:'new' },
   { id:'dashboards',   label:'Dashboards',     icon:'grid',     group:'overview' },
   { id:'funnel',       label:'Funnel',         icon:'funnel',   group:'analysis' },
   { id:'attribution',  label:'Attribution',    icon:'grid',     group:'analysis' },
@@ -84,7 +84,7 @@ function AppShell() {
           <span style={{ color: 'var(--bg)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24 }}>s</span>
         </div>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
-          sjá <span style={{ fontWeight: 400, color: 'var(--ink-3)' }}>by EIKR</span>
+          faro <span style={{ fontWeight: 400, color: 'var(--ink-3)' }}>by EIKR</span>
         </div>
       </div>
     </div>
@@ -170,7 +170,7 @@ function Sidebar({ route, navigate, persona, workspaceName, filteredNav, role, o
     <aside className="side" style={{ '--mob-open': sideOpen ? '1' : '0' }}>
       <div className="brand">
         <div className="brand-mark"/>
-        <div className="brand-name">{branding.name || 'sjá'}</div>
+        <div className="brand-name">{branding.name || 'faro'}</div>
       </div>
       <div className="workspace" onClick={() => memberships.length > 1 && setWsOpen(o => !o)} style={{ cursor: memberships.length > 1 ? 'pointer' : 'default', position: 'relative' }}>
         <div className="avatar" style={{ background: branding.color || undefined }}>{(workspaceName || 'W')[0].toUpperCase()}</div>
@@ -223,7 +223,7 @@ function Sidebar({ route, navigate, persona, workspaceName, filteredNav, role, o
         <div className="card tinted" style={{ padding:12, borderRadius:12 }}>
           <div className="row tight" style={{ marginBottom:6, alignItems:'center' }}>
             <span className="src beac sm"><Icon name="sparkles" size={10}/></span>
-            <span className="tag" style={{ fontSize:9 }}>SJÁ · TIP</span>
+            <span className="tag" style={{ fontSize:9 }}>FARO · TIP</span>
           </div>
           <div style={{ fontSize:12, lineHeight:1.35 }}>
             Hit <kbd style={{ fontFamily:'var(--font-mono)', fontSize:10, background:'var(--surface)', border:'1px solid var(--border)', padding:'1px 5px', borderRadius:3 }}>/</kbd> anywhere to ask a question.
@@ -253,7 +253,7 @@ function Topbar({ route, navigate, tweaks, setTweak, profile, onLogout, setSideO
       <div className="grow"/>
       <button className="search" onClick={() => navigate('ask')}>
         <Icon name="search" size={14}/>
-        <span>Search or ask Sjá…</span>
+        <span>Search or ask Faro…</span>
         <kbd>/</kbd>
       </button>
       <button className="btn ghost sm" title="Toggle theme"
@@ -399,7 +399,7 @@ function ScreenSettings({ token, workspaceId, workspaceData }) {
       {/* Branding */}
       <div className="card">
         <h3 style={{ marginBottom: 4 }}>White-label branding</h3>
-        <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 16 }}>Replaces "sjá by EIKR" in the sidebar with your own brand</div>
+        <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 16 }}>Replaces "faro by EIKR" in the sidebar with your own brand</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Consultant / agency name</label>

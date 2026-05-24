@@ -425,9 +425,9 @@ export function ScreenConnections({ token, workspaceId }) {
               {isOpen && s.id === 'tt' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div style={{ padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 8, fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>
-                    TikTok API access requires approval. Use manual import while waiting — paste spend/impressions/clicks/conversions data via Ask Sjá.
+                    TikTok API access requires approval. Use manual import while waiting — paste spend/impressions/clicks/conversions data via Ask Faro.
                   </div>
-                  <button className="btn sm primary" style={{ justifyContent: 'center' }} onClick={() => { setMsg('Manual import ready: use Ask Sjá to paste your TikTok Ads Manager CSV export'); setConnecting(null) }}>Set up manual import</button>
+                  <button className="btn sm primary" style={{ justifyContent: 'center' }} onClick={() => { setMsg('Manual import ready: use Ask Faro to paste your TikTok Ads Manager CSV export'); setConnecting(null) }}>Set up manual import</button>
                   <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
                 </div>
               )}

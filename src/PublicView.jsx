@@ -76,7 +76,7 @@ export default function PublicView({ token }) {
               <span style={{ color: '#fff', fontWeight: 800, fontSize: 16, fontFamily: '"Playfair Display", serif' }}>s</span>
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: '#1a1a1a', letterSpacing: '-0.02em' }}>sjá</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: '#1a1a1a', letterSpacing: '-0.02em' }}>faro</div>
               <div style={{ fontSize: 10, color: '#999', marginTop: -2 }}>Powered by EIKR</div>
             </div>
           </div>
@@ -172,7 +172,7 @@ export default function PublicView({ token }) {
           <div style={{ textAlign: 'center', fontSize: 12, color: '#bbb', lineHeight: 1.6 }}>
             Last updated {new Date(data.updated_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}<br/>
             <span style={{ marginTop: 4, display: 'block' }}>
-              Powered by <strong style={{ color: '#999' }}>Sjá by EIKR</strong> · eikr.ee
+              Powered by <strong style={{ color: '#999' }}>Faro by EIKR</strong> · eikr.ee
             </span>
           </div>
         </div>
