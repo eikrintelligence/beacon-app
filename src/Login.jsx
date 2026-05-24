@@ -14,6 +14,7 @@ export default function Login({ onNeedOnboarding }) {
   const [error, setError] = useState('')
   const [resetSent, setResetSent] = useState(false)
   const [resetting, setResetting] = useState(false)
+  const [success, setSuccess] = useState(false)
 
   async function handleSubmit() {
     setLoading(true)
@@ -22,8 +23,12 @@ export default function Login({ onNeedOnboarding }) {
       if (mode === 'signin') {
         await login(email, password)
       } else {
-        await register(email, password, fullName)
-        onNeedOnboarding({ email, password, fullName })
+        const data = await register(email, password, fullName)
+        if (data.error) throw new Error(data.error)
+        setSuccess(true)
+        setTimeout(() => {
+          onNeedOnboarding({ email, password, fullName })
+        }, 1500)
       }
     } catch (e) {
       setError(e.message)
@@ -48,6 +53,16 @@ export default function Login({ onNeedOnboarding }) {
     }
     setResetting(false)
   }
+
+  if (success) return (
+    <div style={{ minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <div style={{ textAlign:'center' }}>
+        <div style={{ width:56, height:56, borderRadius:'50%', background:'var(--up)', display:'grid', placeItems:'center', margin:'0 auto 16px', fontSize:24 }}>✓</div>
+        <h2 style={{ fontFamily:'var(--font-display)', marginBottom:8 }}>Account created!</h2>
+        <p style={{ color:'var(--ink-3)' }}>Setting up your workspace...</p>
+      </div>
+    </div>
+  )
 
   const inputStyle = {
     width: '100%', padding: '12px 14px', borderRadius: 10,
