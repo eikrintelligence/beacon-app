@@ -215,7 +215,7 @@ export function ScreenFunnel({ shape, workspaceData, onNavigate }) {
   )
 }
 
-export function ScreenConnections({ token, workspaceId }) {
+export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
   const [connections, setConnections] = useState([])
   const [connecting, setConnecting] = useState(null)
   const [metaToken, setMetaToken] = useState('')
@@ -244,6 +244,20 @@ export function ScreenConnections({ token, workspaceId }) {
   }, [workspaceId, token])
 
   const isConnected = (platform) => connections.some(c => c.platform === platform && c.status === 'active')
+  const getConnection = (platform) => connections.find(c => c.platform === platform && c.status === 'active')
+
+  async function afterConnect(name) {
+    setMsg(`✓ ${name} connected!`)
+    setConnecting(null)
+    try {
+      const d = await fetch(`https://sja.eikr.ee/api/workspace/${workspaceId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(r => r.json())
+      setConnections(d.connections || [])
+    } catch (e) {}
+    if (refreshWorkspace) refreshWorkspace()
+    setTimeout(() => window.location.reload(), 1000)
+  }
 
   async function connectShopify() {
     setLoading(true)
@@ -257,12 +271,10 @@ export function ScreenConnections({ token, workspaceId }) {
       })
       const data = await res.json()
       if (data.success) {
-        setMsg('✓ Shopify connected!')
-        setConnecting(null)
         const test = await fetch(`https://sja.eikr.ee/api/shopify/test?workspace_id=${workspaceId}`, {
           headers: { Authorization: `Bearer ${token}` }
         }).then(r => r.json())
-        if (test.success) setMsg(`✓ Connected to ${test.shop}`)
+        await afterConnect(test.success ? `Shopify (${test.shop})` : 'Shopify')
       } else {
         setMsg('Error: ' + data.error)
       }
@@ -282,7 +294,7 @@ export function ScreenConnections({ token, workspaceId }) {
         body: JSON.stringify({ access_token: metaToken, ad_account_id: metaAccountId, workspace_id: workspaceId })
       })
       const data = await res.json()
-      if (data.success) { setMsg('✓ Meta Ads connected!'); setConnecting(null) }
+      if (data.success) { await afterConnect('Meta Ads') }
       else setMsg('Error: ' + data.error)
     } catch (e) {
       setMsg('Connection failed: ' + e.message)
@@ -300,7 +312,7 @@ export function ScreenConnections({ token, workspaceId }) {
         body: JSON.stringify({ workspace_id: workspaceId, property_id: ga4PropertyId })
       })
       const data = await res.json()
-      if (data.success) { setMsg('✓ Google Analytics connected!'); setConnecting(null) }
+      if (data.success) { await afterConnect('Google Analytics') }
       else setMsg('Error: ' + data.error)
     } catch (e) {
       setMsg('Connection failed: ' + e.message)
@@ -317,7 +329,7 @@ export function ScreenConnections({ token, workspaceId }) {
         body: JSON.stringify({ workspace_id: workspaceId, customer_id: gadsCustomerId, developer_token: gadsDeveloperToken, client_id: gadsClientId, client_secret: gadsClientSecret, refresh_token: gadsRefreshToken })
       })
       const data = await res.json()
-      if (data.success) { setMsg('✓ Google Ads connected!'); setConnecting(null) }
+      if (data.success) { await afterConnect('Google Ads') }
       else setMsg('Error: ' + data.error)
     } catch (e) { setMsg('Connection failed: ' + e.message) }
     setLoading(false)
@@ -333,7 +345,7 @@ export function ScreenConnections({ token, workspaceId }) {
         body: JSON.stringify({ workspace_id: workspaceId, api_key: klaviyoKey })
       })
       const data = await res.json()
-      if (data.success) { setMsg('✓ Klaviyo connected!'); setConnecting(null) }
+      if (data.success) { await afterConnect('Klaviyo') }
       else setMsg('Error: ' + data.error)
     } catch (e) {
       setMsg('Connection failed: ' + e.message)
@@ -352,13 +364,14 @@ export function ScreenConnections({ token, workspaceId }) {
     { id: 'shopify', name: 'Shopify', short: 'SH', color: '#95bf47', desc: 'Orders, revenue, products, customers' },
     { id: 'meta', name: 'Meta Ads', short: 'MA', color: '#1877f2', desc: 'Campaigns, spend, ROAS, CPA' },
     { id: 'gads', name: 'Google Ads', short: 'GA', color: '#4285f4', desc: 'Search campaigns, keywords, spend' },
-    { id: 'ga', name: 'Google Analytics', short: 'G4', color: '#f9ab00', desc: 'Sessions, traffic sources, conversions' },
+    { id: 'ga4', name: 'Google Analytics', short: 'G4', color: '#f9ab00', desc: 'Sessions, traffic sources, conversions' },
     { id: 'klaviyo', name: 'Klaviyo', short: 'KL', color: '#f26722', desc: 'Email flows, open rates, revenue' },
     { id: 'tt', name: 'TikTok Ads', short: 'TT', color: '#fe2c55', desc: 'Video campaigns, views, CTR' },
   ]
 
   return (
     <div className="page">
+      <style>{`@keyframes faro-spin{to{transform:rotate(360deg)}}.faro-spinner{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:faro-spin .6s linear infinite;margin-right:6px;vertical-align:middle}`}</style>
       <div className="page-head">
         <div>
           <h1>Sources</h1>
@@ -377,7 +390,21 @@ export function ScreenConnections({ token, workspaceId }) {
                 <div className="src lg" style={{ background: s.color, color: 'white', borderRadius: 10 }}>{s.short}</div>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{s.name}</div>
-                  <div className="muted" style={{ fontSize: 11.5 }}>{connected ? 'Connected ✓' : s.desc}</div>
+                  {connected ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                    <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: 10.5, fontWeight: 700,
+                      background: 'color-mix(in oklab, var(--up) 15%, var(--surface))', color: 'var(--up)' }}>
+                      Connected ✓
+                    </span>
+                    {getConnection(s.id)?.last_synced && (
+                      <span className="muted" style={{ fontSize: 10.5 }}>
+                        synced {new Date(getConnection(s.id).last_synced).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="muted" style={{ fontSize: 11.5 }}>{s.desc}</div>
+                )}
                 </div>
               </div>
 
@@ -388,7 +415,7 @@ export function ScreenConnections({ token, workspaceId }) {
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
                     <button className="btn sm primary" style={{ flex: 1 }} onClick={connectShopify} disabled={loading || !shopifyUrl || !shopifyToken}>
-                      {loading ? 'Connecting...' : 'Connect'}
+                      {loading ? <><span className='faro-spinner'/>Connecting…</> : 'Connect'}
                     </button>
                   </div>
                 </div>
@@ -401,7 +428,7 @@ export function ScreenConnections({ token, workspaceId }) {
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
                     <button className="btn sm primary" style={{ flex: 1 }} onClick={connectMeta} disabled={loading || !metaToken || !metaAccountId}>
-                      {loading ? 'Connecting...' : 'Connect'}
+                      {loading ? <><span className='faro-spinner'/>Connecting…</> : 'Connect'}
                     </button>
                   </div>
                 </div>
@@ -416,18 +443,18 @@ export function ScreenConnections({ token, workspaceId }) {
                   <input style={inputStyle} type="password" placeholder="Refresh Token" value={gadsRefreshToken} onChange={e => setGadsRefreshToken(e.target.value)}/>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
-                    <button className="btn sm primary" style={{ flex: 1 }} onClick={connectGoogleAds} disabled={loading || !gadsCustomerId}>{loading ? 'Connecting...' : 'Connect'}</button>
+                    <button className="btn sm primary" style={{ flex: 1 }} onClick={connectGoogleAds} disabled={loading || !gadsCustomerId}>{loading ? <><span className='faro-spinner'/>Connecting…</> : 'Connect'}</button>
                   </div>
                 </div>
               )}
 
-              {isOpen && s.id === 'ga' && (
+              {isOpen && s.id === 'ga4' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <input style={inputStyle} placeholder="GA4 Property ID (e.g. 123456789)" value={ga4PropertyId} onChange={e => setGa4PropertyId(e.target.value)}/>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
                     <button className="btn sm primary" style={{ flex: 1 }} onClick={connectGA4} disabled={loading || !ga4PropertyId}>
-                      {loading ? 'Connecting...' : 'Connect'}
+                      {loading ? <><span className='faro-spinner'/>Connecting…</> : 'Connect'}
                     </button>
                   </div>
                 </div>
@@ -439,7 +466,7 @@ export function ScreenConnections({ token, workspaceId }) {
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
                     <button className="btn sm primary" style={{ flex: 1 }} onClick={connectKlaviyo} disabled={loading || !klaviyoKey}>
-                      {loading ? 'Connecting...' : 'Connect'}
+                      {loading ? <><span className='faro-spinner'/>Connecting…</> : 'Connect'}
                     </button>
                   </div>
                 </div>

@@ -76,6 +76,11 @@ function AppShell() {
     }
   }, [token, workspace])
 
+  async function refreshWorkspace() {
+    if (!token || !workspace?.id) return
+    try { const data = await getWorkspace(token, workspace.id); setWorkspaceData(data) } catch (e) {}
+  }
+
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: 'var(--bg)' }}>
       <style>{`@keyframes sja-pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }`}</style>
@@ -134,7 +139,7 @@ function AppShell() {
         <Topbar route={route} navigate={navigate} tweaks={tweaks} setTweak={setTweak}
           profile={profile} onLogout={logout} setSideOpen={setSideOpen}/>
         <RouteView route={route} navigate={navigate} tweaks={tweaks}
-          revenueData={revenueData} workspaceData={workspaceData}
+          revenueData={revenueData} workspaceData={workspaceData} refreshWorkspace={refreshWorkspace}
           token={token} workspace={workspace} role={role}/>
       </div>
       {role === 'admin' && (
@@ -283,14 +288,14 @@ function Topbar({ route, navigate, tweaks, setTweak, profile, onLogout, setSideO
   )
 }
 
-function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token, workspace, role }) {
+function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token, workspace, role, refreshWorkspace }) {
   switch (route.name) {
     case 'home': return <ScreenHome persona={tweaks.persona} shape={tweaks.shape} onNavigate={navigate} onAsk={() => navigate('ask')} revenueData={revenueData} workspaceData={workspaceData} role={role} token={token} workspaceId={workspace?.id}/>
     case 'ask': return <ScreenAsk persona={tweaks.persona} shape={tweaks.shape} token={token} workspaceId={workspace?.id}/>
     case 'funnel': return <ScreenFunnel shape={tweaks.shape} workspaceData={workspaceData} onNavigate={navigate}/>
     case 'attribution': return <ScreenAttribution/>
     case 'sku': return <ScreenSKU token={token} workspaceId={workspace?.id}/>
-    case 'connections': return <ScreenConnections token={token} workspaceId={workspace?.id}/>
+    case 'connections': return <ScreenConnections token={token} workspaceId={workspace?.id} refreshWorkspace={refreshWorkspace}/>
     case 'dashboards': return <ScreenDashboards shape={tweaks.shape}/>
     case 'goals': return <ScreenGoals workspaceData={workspaceData}/>
     case 'alerts': return <ScreenAlerts workspaceData={workspaceData} token={token} workspaceId={workspace?.id}/>
