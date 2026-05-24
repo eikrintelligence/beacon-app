@@ -96,13 +96,21 @@ function AppShell() {
   const shareToken = new URLSearchParams(window.location.search).get('share')
   if (shareToken) return <PublicView token={shareToken}/>
 
-  if (!user) return <Login onNeedOnboarding={(data) => setNeedOnboarding(data)}/>
-
-  const alreadyOnboarded = localStorage.getItem('sja_onboarded')
-  if (needOnboarding || (!workspace && !alreadyOnboarded)) return (
+  if (needOnboarding) return (
     <Onboarding
       token={token}
       userEmail={typeof needOnboarding === 'object' ? needOnboarding.email : user?.email}
+      onComplete={() => { setNeedOnboarding(false); window.location.reload() }}
+    />
+  )
+
+  if (!user) return <Login onNeedOnboarding={(data) => setNeedOnboarding(data)}/>
+
+  const alreadyOnboarded = localStorage.getItem('sja_onboarded')
+  if (!workspace && !alreadyOnboarded) return (
+    <Onboarding
+      token={token}
+      userEmail={user?.email}
       onComplete={() => { setNeedOnboarding(false); window.location.reload() }}
     />
   )
