@@ -1,9 +1,23 @@
 import React, { useState, useMemo, useEffect } from 'react'
 import { FUNNEL, CHANNELS, shapeSeries, fmt, pctChange, Icon, SrcIcon, Sparkline, LineChart, BarChart, Donut, StackBar } from './shared'
 
-export function ScreenFunnel({ shape, workspaceData }) {
+export function ScreenFunnel({ shape, workspaceData, onNavigate }) {
   const [selectedIdx, setSelectedIdx] = useState(3)
   const [whatIf, setWhatIf] = useState(null)
+  const [days, setDays] = useState(7)
+  const [funnelData, setFunnelData] = useState(null)
+  const [syncing, setSyncing] = useState(false)
+
+  async function syncFunnel() {
+    setSyncing(true)
+    try {
+      const wid = workspaceData?.id
+      const res = await fetch(`https://sja.eikr.ee/api/shopify/funnel?workspace_id=${wid}&days=${days}`)
+      const json = await res.json()
+      if (!json.error) setFunnelData(json)
+    } catch (e) {}
+    setSyncing(false)
+  }
 
   const stages = useMemo(() => FUNNEL.map((s, i) => {
     const prev = FUNNEL[i-1]
@@ -58,10 +72,19 @@ export function ScreenFunnel({ shape, workspaceData }) {
       <div className="page-head">
         <div>
           <h1>The funnel</h1>
-          <div className="sub">Follow a customer from impression to order · last 7 days</div>
+          <div className="sub">Follow a customer from impression to order · last {days} days</div>
         </div>
         <div className="actions">
-          <div className="range"><span className="dot"/> Last 7 days <Icon name="chev-down" size={12}/></div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {[7, 30, 90].map(d => (
+              <button key={d} className={'btn sm' + (days === d ? ' primary' : '')} onClick={() => setDays(d)}>Last {d}d</button>
+            ))}
+          </div>
+          {hasShopify && (
+            <button className="btn sm" onClick={syncFunnel} disabled={syncing}>
+              {syncing ? 'Syncing…' : 'Sync funnel data'}
+            </button>
+          )}
         </div>
       </div>
 

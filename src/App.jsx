@@ -287,7 +287,7 @@ function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token,
   switch (route.name) {
     case 'home': return <ScreenHome persona={tweaks.persona} shape={tweaks.shape} onNavigate={navigate} onAsk={() => navigate('ask')} revenueData={revenueData} workspaceData={workspaceData} role={role} token={token} workspaceId={workspace?.id}/>
     case 'ask': return <ScreenAsk persona={tweaks.persona} shape={tweaks.shape} token={token} workspaceId={workspace?.id}/>
-    case 'funnel': return <ScreenFunnel shape={tweaks.shape} workspaceData={workspaceData}/>
+    case 'funnel': return <ScreenFunnel shape={tweaks.shape} workspaceData={workspaceData} onNavigate={navigate}/>
     case 'attribution': return <ScreenAttribution/>
     case 'sku': return <ScreenSKU token={token} workspaceId={workspace?.id}/>
     case 'connections': return <ScreenConnections token={token} workspaceId={workspace?.id}/>
