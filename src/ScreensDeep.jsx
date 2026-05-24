@@ -487,7 +487,7 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
                   className={'btn sm' + (connected ? ' ghost' : ' primary')}
                   style={{ justifyContent: 'center' }}
                   onClick={() => {
-                    if (['shopify', 'meta', 'ga', 'gads', 'klaviyo', 'tt'].includes(s.id)) setConnecting(s.id)
+                    if (['shopify', 'meta', 'ga4', 'gads', 'klaviyo', 'tt'].includes(s.id)) setConnecting(s.id)
                     else setMsg(`${s.name} integration coming soon`)
                   }}
                 >
