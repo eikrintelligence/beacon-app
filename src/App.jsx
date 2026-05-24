@@ -33,6 +33,7 @@ const NAV = [
   { id:'email',        label:'Email & SMS',   icon:'bell',     group:'analysis' },
   { id:'social',       label:'Social',        icon:'users',    group:'analysis' },
   { id:'website',      label:'Website',       icon:'grid',     group:'analysis' },
+  { id:'history',     label:'History',        icon:'clock',    group:'analysis' },
   { id:'connections',  label:'Sources',        icon:'plug',     group:'admin' },
   { id:'settings',     label:'Settings',       icon:'gear',     group:'admin' },
 ]
@@ -43,8 +44,8 @@ const TWEAK_DEFAULTS = {
 }
 
 const ROLE_NAV = {
-  admin:   ['home','ask','dashboards','funnel','attribution','sku','subscriptions','cohorts','goals','alerts','email','social','website','connections','settings'],
-  analyst: ['home','ask','dashboards','funnel','attribution','sku','subscriptions','goals','alerts','email','social','website','connections'],
+  admin:   ['home','ask','dashboards','funnel','attribution','sku','subscriptions','cohorts','goals','alerts','email','social','website','history','connections','settings'],
+  analyst: ['home','ask','dashboards','funnel','attribution','sku','subscriptions','goals','alerts','email','social','website','history','connections'],
   client:  ['home','goals'],
   agency:  ['home','dashboards','social','connections'],
 }
