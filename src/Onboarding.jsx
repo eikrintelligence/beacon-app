@@ -4,6 +4,7 @@ import { Icon } from './shared'
 export default function Onboarding({ onComplete, token, userEmail }) {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [completing, setCompleting] = useState(false)
   const [error, setError] = useState('')
 
   // Step 1 — Workspace
@@ -75,8 +76,19 @@ export default function Onboarding({ onComplete, token, userEmail }) {
 
   function handleComplete() {
     localStorage.setItem('sja_onboarded', 'true')
-    onComplete()
+    setCompleting(true)
+    setTimeout(() => onComplete(), 1000)
   }
+
+  if (completing) return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--up)', display: 'grid', placeItems: 'center', margin: '0 auto 16px', fontSize: 24 }}>✓</div>
+        <h2 style={{ fontFamily: 'var(--font-display)', marginBottom: 8 }}>All set!</h2>
+        <p style={{ color: 'var(--ink-3)' }}>Loading your dashboard...</p>
+      </div>
+    </div>
+  )
 
   return (
     <div style={{

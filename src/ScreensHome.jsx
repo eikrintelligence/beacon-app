@@ -378,7 +378,7 @@ export function ScreenAsk({ persona, shape, token, workspaceId }) {
       <div style={{ marginTop:'auto' }}>
         <div className="ask-input-bar">
           <span style={{ color:'var(--accent)' }}><Icon name="sparkles" size={16}/></span>
-          <input ref={inputRef} placeholder="Ask anything · try 'compare CAC across channels last 30 days'"
+          <input ref={inputRef} placeholder="are we on pace for $500K? · which product is selling best? · how is TAILWAG10 performing?"
             value={input} onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key==='Enter' && submit()}/>
           <button className="btn sm primary" onClick={() => submit()} disabled={!input.trim()}>

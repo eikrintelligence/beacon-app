@@ -71,11 +71,14 @@ function AppShell() {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: 'var(--bg)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 28, height: 28, background: 'var(--ink)', borderRadius: 8, display: 'grid', placeItems: 'center' }}>
-          <span style={{ color: 'var(--bg)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 15 }}>s</span>
+      <style>{`@keyframes sja-pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }`}</style>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: 44, height: 44, background: 'var(--ink)', borderRadius: 12, display: 'grid', placeItems: 'center', margin: '0 auto 16px', animation: 'sja-pulse 1.6s ease-in-out infinite' }}>
+          <span style={{ color: 'var(--bg)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24 }}>s</span>
         </div>
-        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18 }}>Loading...</span>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', color: 'var(--ink)' }}>
+          sjá <span style={{ fontWeight: 400, color: 'var(--ink-3)' }}>by EIKR</span>
+        </div>
       </div>
     </div>
   )
