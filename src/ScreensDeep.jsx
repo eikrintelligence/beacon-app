@@ -46,23 +46,22 @@ export function ScreenFunnel({ shape, workspaceData, onNavigate }) {
     { id:'em', label:'Email', v:6, color:'var(--accent-3)' },
   ]
 
-  const hasConnections = workspaceData?.connections?.some(c => c.status === 'active')
-  if (!hasConnections) return (
+  const hasShopify = workspaceData?.connections?.some(c => c.platform === 'shopify' && c.status === 'active')
+  if (!hasShopify) return (
     <div className="page">
       <div className="page-head">
-        <div><h1>The funnel</h1><div className="sub">Connect data sources to unlock real funnel data</div></div>
+        <div><h1>The funnel</h1><div className="sub">Connect Shopify to unlock real funnel data</div></div>
       </div>
       <div style={{ padding: '64px 24px', textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
-        <div style={{ fontSize: 56, marginBottom: 20 }}>🔗</div>
-        <h2 style={{ marginBottom: 10 }}>No data sources connected</h2>
+        <div style={{ fontSize: 52, marginBottom: 20 }}>&#128722;</div>
+        <h2 style={{ marginBottom: 10 }}>Connect Shopify to see your funnel</h2>
         <div style={{ color: 'var(--ink-3)', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
-          Connect Shopify and your ad platforms to see a real customer journey from impression to order — with drop-off rates, conversion benchmarks, and what-if simulations.
+          Link your Shopify store to see a real customer journey from impression to order
+          — with drop-off rates, conversion benchmarks, and what-if simulations.
         </div>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-          {['Shopify', 'Meta Ads', 'Google Ads', 'TikTok'].map(p => (
-            <span key={p} style={{ padding: '6px 14px', borderRadius: 999, background: 'var(--surface-2)', fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }}>{p}</span>
-          ))}
-        </div>
+        <button className="btn primary" onClick={() => onNavigate && onNavigate('connections')}>
+          Connect Shopify →
+        </button>
       </div>
     </div>
   )
