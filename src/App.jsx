@@ -268,7 +268,7 @@ function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token,
     case 'dashboards': return <ScreenDashboards token={token} workspaceId={workspace?.id} workspaceData={workspaceData} revenueData={revenueData}/>
     case 'goals': return <ScreenGoals workspaceData={workspaceData}/>
     case 'alerts': return <ScreenAlerts workspaceData={workspaceData} token={token} workspaceId={workspace?.id}/>
-    case 'subscriptions': return <ScreenSubscriptions token={token} workspaceId={workspace?.id}/>
+    case 'subscriptions': return <ScreenSubscriptions token={token} workspaceId={workspace?.id} workspaceData={workspaceData}/>
     case 'history': return <ScreenHistory workspaceData={workspaceData} token={token} workspaceId={workspace?.id}/>
     case 'email': return <ScreenEmail token={token} workspaceId={workspace?.id} onNavigate={navigate}/>
     case 'social': return <ScreenSocial token={token} workspaceId={workspace?.id}/>
