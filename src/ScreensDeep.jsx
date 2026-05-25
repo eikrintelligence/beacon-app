@@ -212,155 +212,170 @@ export function ScreenFunnel({ shape, workspaceData, onNavigate }) {
 export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
   const [connections, setConnections] = useState([])
   const [connecting, setConnecting] = useState(null)
-  const [metaToken, setMetaToken] = useState('')
-  const [metaAccountId, setMetaAccountId] = useState('')
+  const [syncStatus, setSyncStatus] = useState({})
+  // Shopify
   const [shopifyUrl, setShopifyUrl] = useState('')
   const [shopifyToken, setShopifyToken] = useState('')
+  // Meta
+  const [metaToken, setMetaToken] = useState('')
+  const [metaAccountId, setMetaAccountId] = useState('')
+  // GA4
   const [ga4PropertyId, setGa4PropertyId] = useState('')
+  // Klaviyo
   const [klaviyoKey, setKlaviyoKey] = useState('')
+  // Google Ads
   const [gadsCustomerId, setGadsCustomerId] = useState('')
   const [gadsDeveloperToken, setGadsDeveloperToken] = useState('')
   const [gadsClientId, setGadsClientId] = useState('')
   const [gadsClientSecret, setGadsClientSecret] = useState('')
   const [gadsRefreshToken, setGadsRefreshToken] = useState('')
+  // TikTok manual import
+  const [ttDateFrom, setTtDateFrom] = useState('')
+  const [ttDateTo, setTtDateTo] = useState('')
+  const [ttSpend, setTtSpend] = useState('')
+  const [ttImpressions, setTtImpressions] = useState('')
+  const [ttClicks, setTtClicks] = useState('')
+  const [ttConversions, setTtConversions] = useState('')
+  const [ttRoas, setTtRoas] = useState('')
+  const [ttApiMode, setTtApiMode] = useState(false)
+
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (workspaceId && token) {
-      fetch(`https://sja.eikr.ee/api/workspace/${workspaceId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-        .then(r => r.json())
-        .then(d => setConnections(d.connections || []))
-        .catch(() => {})
-    }
+    if (!workspaceId || !token) return
+    fetch(`https://sja.eikr.ee/api/workspace/${workspaceId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(r => r.json()).then(d => setConnections(d.connections || [])).catch(() => {})
   }, [workspaceId, token])
 
-  const isConnected = (platform) => connections.some(c => c.platform === platform && c.status === 'active')
-  const getConnection = (platform) => connections.find(c => c.platform === platform && c.status === 'active')
+  const isConnected = p => connections.some(c => c.platform === p && c.status === 'active')
+  const getConn     = p => connections.find(c => c.platform === p && c.status === 'active')
 
-  async function afterConnect(name) {
-    setMsg(`✓ ${name} connected!`)
+  const SYNC_URLS = {
+    shopify: `https://sja.eikr.ee/api/shopify/revenue?workspace_id=${workspaceId}`,
+    meta:    `https://sja.eikr.ee/api/meta/campaigns?workspace_id=${workspaceId}`,
+    ga4:     `https://sja.eikr.ee/api/ga4/metrics?workspace_id=${workspaceId}`,
+    gads:    `https://sja.eikr.ee/api/googleads/campaigns?workspace_id=${workspaceId}`,
+    klaviyo: `https://sja.eikr.ee/api/klaviyo/metrics?workspace_id=${workspaceId}`,
+  }
+
+  async function syncAfterConnect(platformId, platformName) {
+    const url = SYNC_URLS[platformId]
+    if (!url) { setSyncStatus(p => ({ ...p, [platformId]: 'ok' })); setMsg(`✓ ${platformName} connected!`); return }
+    setSyncStatus(p => ({ ...p, [platformId]: 'syncing' }))
+    setMsg(`✓ ${platformName} connected — syncing data…`)
+    try {
+      const d = await fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json())
+      if (d.error) {
+        setSyncStatus(p => ({ ...p, [platformId]: 'failed' }))
+        setMsg('Connected but data sync failed — check credentials')
+      } else {
+        setSyncStatus(p => ({ ...p, [platformId]: 'ok' }))
+        setMsg(`✓ ${platformName} connected — data synced`)
+      }
+    } catch {
+      setSyncStatus(p => ({ ...p, [platformId]: 'failed' }))
+      setMsg('Connected but data sync failed — check credentials')
+    }
+  }
+
+  async function afterConnect(platformId, platformName) {
     setConnecting(null)
     try {
       const d = await fetch(`https://sja.eikr.ee/api/workspace/${workspaceId}`, {
         headers: { Authorization: `Bearer ${token}` }
       }).then(r => r.json())
       setConnections(d.connections || [])
-    } catch (e) {}
+    } catch {}
     if (refreshWorkspace) refreshWorkspace()
-    setTimeout(() => window.location.reload(), 1000)
+    await syncAfterConnect(platformId, platformName)
+    setTimeout(() => window.location.reload(), 2000)
   }
 
-  async function connectShopify() {
-    setLoading(true)
-    setMsg('')
+  async function removeConnection(platformId, platformName) {
+    if (!window.confirm(`Remove ${platformName}? This will disconnect the integration.`)) return
     try {
-      const clean = shopifyUrl.replace('https://','').replace('http://','').replace(/\/$/,'')
-      const res = await fetch('https://sja.eikr.ee/api/shopify/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ store_url: clean, access_token: shopifyToken, workspace_id: workspaceId })
+      await fetch(`https://sja.eikr.ee/api/workspace/${workspaceId}/connections/${platformId}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
       })
-      const data = await res.json()
-      if (data.success) {
-        const test = await fetch(`https://sja.eikr.ee/api/shopify/test?workspace_id=${workspaceId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).then(r => r.json())
-        await afterConnect(test.success ? `Shopify (${test.shop})` : 'Shopify')
-      } else {
-        setMsg('Error: ' + data.error)
-      }
-    } catch (e) {
-      setMsg('Connection failed: ' + e.message)
-    }
+      setConnections(prev => prev.filter(c => c.platform !== platformId))
+      if (refreshWorkspace) refreshWorkspace()
+      setMsg(`${platformName} removed`)
+    } catch { setMsg('Failed to remove connection') }
+  }
+
+  const post = (url, body) => fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) }).then(r => r.json())
+
+  async function connectShopify() {
+    setLoading(true); setMsg('')
+    try {
+      const clean = shopifyUrl.replace(/^https?:\/\//,'').replace(/\/$/,'')
+      const r = await post('https://sja.eikr.ee/api/shopify/connect', { store_url: clean, access_token: shopifyToken, workspace_id: workspaceId })
+      if (r.success) await afterConnect('shopify', 'Shopify'); else setMsg('Error: ' + r.error)
+    } catch (e) { setMsg('Connection failed: ' + e.message) }
     setLoading(false)
   }
 
   async function connectMeta() {
-    setLoading(true)
-    setMsg('')
+    setLoading(true); setMsg('')
     try {
-      const res = await fetch('https://sja.eikr.ee/api/meta/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ access_token: metaToken, ad_account_id: metaAccountId, workspace_id: workspaceId })
-      })
-      const data = await res.json()
-      if (data.success) { await afterConnect('Meta Ads') }
-      else setMsg('Error: ' + data.error)
-    } catch (e) {
-      setMsg('Connection failed: ' + e.message)
-    }
+      const r = await post('https://sja.eikr.ee/api/meta/connect', { access_token: metaToken, ad_account_id: metaAccountId, workspace_id: workspaceId })
+      if (r.success) await afterConnect('meta', 'Meta Ads'); else setMsg('Error: ' + r.error)
+    } catch (e) { setMsg('Connection failed: ' + e.message) }
     setLoading(false)
   }
 
   async function connectGA4() {
-    setLoading(true)
-    setMsg('')
+    setLoading(true); setMsg('')
     try {
-      const res = await fetch('https://sja.eikr.ee/api/ga4/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ workspace_id: workspaceId, property_id: ga4PropertyId })
-      })
-      const data = await res.json()
-      if (data.success) { await afterConnect('Google Analytics') }
-      else setMsg('Error: ' + data.error)
-    } catch (e) {
-      setMsg('Connection failed: ' + e.message)
-    }
+      const r = await post('https://sja.eikr.ee/api/ga4/connect', { workspace_id: workspaceId, property_id: ga4PropertyId })
+      if (r.success) await afterConnect('ga4', 'Google Analytics'); else setMsg('Error: ' + r.error)
+    } catch (e) { setMsg('Connection failed: ' + e.message) }
     setLoading(false)
   }
 
   async function connectGoogleAds() {
     setLoading(true); setMsg('')
     try {
-      const res = await fetch('https://sja.eikr.ee/api/googleads/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ workspace_id: workspaceId, customer_id: gadsCustomerId, developer_token: gadsDeveloperToken, client_id: gadsClientId, client_secret: gadsClientSecret, refresh_token: gadsRefreshToken })
-      })
-      const data = await res.json()
-      if (data.success) { await afterConnect('Google Ads') }
-      else setMsg('Error: ' + data.error)
+      const r = await post('https://sja.eikr.ee/api/googleads/connect', { workspace_id: workspaceId, customer_id: gadsCustomerId, developer_token: gadsDeveloperToken, client_id: gadsClientId, client_secret: gadsClientSecret, refresh_token: gadsRefreshToken })
+      if (r.success) await afterConnect('gads', 'Google Ads'); else setMsg('Error: ' + r.error)
     } catch (e) { setMsg('Connection failed: ' + e.message) }
     setLoading(false)
   }
 
   async function connectKlaviyo() {
-    setLoading(true)
-    setMsg('')
+    setLoading(true); setMsg('')
     try {
-      const res = await fetch('https://sja.eikr.ee/api/klaviyo/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ workspace_id: workspaceId, api_key: klaviyoKey })
-      })
-      const data = await res.json()
-      if (data.success) { await afterConnect('Klaviyo') }
-      else setMsg('Error: ' + data.error)
-    } catch (e) {
-      setMsg('Connection failed: ' + e.message)
-    }
+      const r = await post('https://sja.eikr.ee/api/klaviyo/connect', { workspace_id: workspaceId, api_key: klaviyoKey })
+      if (r.success) await afterConnect('klaviyo', 'Klaviyo'); else setMsg('Error: ' + r.error)
+    } catch (e) { setMsg('Connection failed: ' + e.message) }
     setLoading(false)
   }
 
-  const inputStyle = {
-    width: '100%', padding: '10px 14px', borderRadius: 10,
-    border: '1px solid var(--border)', background: 'var(--surface)',
-    fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-body)',
-    outline: 'none', boxSizing: 'border-box'
+  async function importTikTok() {
+    setLoading(true); setMsg('')
+    try {
+      const ctr = ttClicks && ttImpressions ? ((parseInt(ttClicks) / parseInt(ttImpressions)) * 100).toFixed(2) : 0
+      const r = await post('https://sja.eikr.ee/api/tiktok/import', {
+        workspace_id: workspaceId,
+        data: { date_from: ttDateFrom, date_to: ttDateTo, spend: parseFloat(ttSpend) || 0, impressions: parseInt(ttImpressions) || 0, clicks: parseInt(ttClicks) || 0, conversions: parseInt(ttConversions) || 0, roas: parseFloat(ttRoas) || 0, ctr }
+      })
+      if (r.success) { setMsg('✓ TikTok data imported'); setConnecting(null) }
+      else setMsg('Error: ' + r.error)
+    } catch (e) { setMsg('Import failed: ' + e.message) }
+    setLoading(false)
   }
 
+  const inp = { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-body)', outline: 'none', boxSizing: 'border-box' }
+
   const sources = [
-    { id: 'shopify', name: 'Shopify', short: 'SH', color: '#95bf47', desc: 'Orders, revenue, products, customers' },
-    { id: 'meta', name: 'Meta Ads', short: 'MA', color: '#1877f2', desc: 'Campaigns, spend, ROAS, CPA' },
-    { id: 'gads', name: 'Google Ads', short: 'GA', color: '#4285f4', desc: 'Search campaigns, keywords, spend' },
-    { id: 'ga4', name: 'Google Analytics', short: 'G4', color: '#f9ab00', desc: 'Sessions, traffic sources, conversions' },
-    { id: 'klaviyo', name: 'Klaviyo', short: 'KL', color: '#f26722', desc: 'Email flows, open rates, revenue' },
-    { id: 'tt', name: 'TikTok Ads', short: 'TT', color: '#fe2c55', desc: 'Video campaigns, views, CTR' },
+    { id: 'shopify', name: 'Shopify',           short: 'SH', color: '#95bf47', desc: 'Orders, revenue, products, customers' },
+    { id: 'meta',    name: 'Meta Ads',           short: 'MA', color: '#1877f2', desc: 'Campaigns, spend, ROAS, CPA' },
+    { id: 'gads',    name: 'Google Ads',         short: 'GA', color: '#4285f4', desc: 'Search campaigns, keywords, spend' },
+    { id: 'ga4',     name: 'Google Analytics',   short: 'G4', color: '#f9ab00', desc: 'Sessions, traffic sources, conversions' },
+    { id: 'klaviyo', name: 'Klaviyo',            short: 'KL', color: '#f26722', desc: 'Email flows, open rates, revenue' },
+    { id: 'tt',      name: 'TikTok Ads',         short: 'TT', color: '#fe2c55', desc: 'Video campaigns, views, CTR' },
   ]
 
   return (
@@ -371,131 +386,188 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
           <h1>Sources</h1>
           <div className="sub">{connections.length} connected · {sources.length - connections.length} available</div>
         </div>
-        {msg && <div style={{ padding: '8px 16px', borderRadius: 10, background: msg.startsWith('✓') ? 'color-mix(in oklab, var(--up) 12%, var(--surface))' : 'color-mix(in oklab, var(--dn) 12%, var(--surface))', color: msg.startsWith('✓') ? 'var(--up)' : 'var(--dn)', fontSize: 13, fontWeight: 600 }}>{msg}</div>}
+        {msg && (
+          <div style={{ padding: '8px 16px', borderRadius: 10, background: msg.startsWith('✓') ? 'color-mix(in oklab,var(--up) 12%,var(--surface))' : 'color-mix(in oklab,var(--dn) 12%,var(--surface))', color: msg.startsWith('✓') ? 'var(--up)' : 'var(--dn)', fontSize: 13, fontWeight: 600 }}>{msg}</div>
+        )}
       </div>
 
       <div className="conn-grid">
         {sources.map(s => {
           const connected = isConnected(s.id)
-          const isOpen = connecting === s.id
+          const conn      = getConn(s.id)
+          const isOpen    = connecting === s.id
+          const sync      = syncStatus[s.id]
           return (
             <div key={s.id} className={'conn-card' + (connected ? ' connected' : '')} style={{ gap: 12 }}>
+              {/* Header row */}
               <div className="row tight" style={{ alignItems: 'center' }}>
                 <div className="src lg" style={{ background: s.color, color: 'white', borderRadius: 10 }}>{s.short}</div>
-                <div>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{s.name}</div>
                   {connected ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                    <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: 10.5, fontWeight: 700,
-                      background: 'color-mix(in oklab, var(--up) 15%, var(--surface))', color: 'var(--up)' }}>
-                      Connected ✓
-                    </span>
-                    {getConnection(s.id)?.last_synced && (
-                      <span className="muted" style={{ fontSize: 10.5 }}>
-                        synced {new Date(getConnection(s.id).last_synced).toLocaleDateString()}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+                      <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: 10.5, fontWeight: 700,
+                        background: sync === 'syncing' ? 'color-mix(in oklab,#888 15%,var(--surface))' : sync === 'failed' ? 'color-mix(in oklab,var(--dn) 15%,var(--surface))' : 'color-mix(in oklab,var(--up) 15%,var(--surface))',
+                        color: sync === 'syncing' ? 'var(--ink-3)' : sync === 'failed' ? 'var(--dn)' : 'var(--up)' }}>
+                        {sync === 'syncing' ? <><span className="faro-spinner"/>Syncing…</> : sync === 'failed' ? 'Sync failed ⚠' : 'Connected ✓'}
                       </span>
-                    )}
-                  </div>
-                ) : (
-                  <div className="muted" style={{ fontSize: 11.5 }}>{s.desc}</div>
-                )}
+                      {conn?.last_synced && sync !== 'syncing' && (
+                        <span className="muted" style={{ fontSize: 10.5 }}>
+                          {new Date(conn.last_synced).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="muted" style={{ fontSize: 11.5 }}>{s.desc}</div>
+                  )}
                 </div>
               </div>
 
+              {/* Shopify form */}
               {isOpen && s.id === 'shopify' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <input style={inputStyle} placeholder="yourstore.myshopify.com" value={shopifyUrl} onChange={e => setShopifyUrl(e.target.value)}/>
-                  <input style={inputStyle} type="password" placeholder="shpat_••••••••••••••••" value={shopifyToken} onChange={e => setShopifyToken(e.target.value)}/>
+                  {connected && <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Enter new credentials to update:</div>}
+                  <input style={inp} placeholder="yourstore.myshopify.com" value={shopifyUrl} onChange={e => setShopifyUrl(e.target.value)}/>
+                  <input style={inp} type="password" placeholder="shpat_••••••••••••••••" value={shopifyToken} onChange={e => setShopifyToken(e.target.value)}/>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
                     <button className="btn sm primary" style={{ flex: 1 }} onClick={connectShopify} disabled={loading || !shopifyUrl || !shopifyToken}>
-                      {loading ? <><span className='faro-spinner'/>Connecting…</> : 'Connect'}
+                      {loading ? <><span className="faro-spinner"/>Connecting…</> : connected ? 'Update' : 'Connect'}
                     </button>
                   </div>
                 </div>
               )}
 
+              {/* Meta form */}
               {isOpen && s.id === 'meta' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <input style={inputStyle} placeholder="Meta Access Token" value={metaToken} onChange={e => setMetaToken(e.target.value)}/>
-                  <input style={inputStyle} placeholder="Ad Account ID (without act_)" value={metaAccountId} onChange={e => setMetaAccountId(e.target.value)}/>
+                  {connected && <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Enter new credentials to update:</div>}
+                  <input style={inp} placeholder="Meta Access Token" value={metaToken} onChange={e => setMetaToken(e.target.value)}/>
+                  <input style={inp} placeholder="Ad Account ID (without act_)" value={metaAccountId} onChange={e => setMetaAccountId(e.target.value)}/>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
                     <button className="btn sm primary" style={{ flex: 1 }} onClick={connectMeta} disabled={loading || !metaToken || !metaAccountId}>
-                      {loading ? <><span className='faro-spinner'/>Connecting…</> : 'Connect'}
+                      {loading ? <><span className="faro-spinner"/>Connecting…</> : connected ? 'Update' : 'Connect'}
                     </button>
                   </div>
                 </div>
               )}
 
+              {/* Google Ads form */}
               {isOpen && s.id === 'gads' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <input style={inputStyle} placeholder="Customer ID (e.g. 123-456-7890)" value={gadsCustomerId} onChange={e => setGadsCustomerId(e.target.value)}/>
-                  <input style={inputStyle} placeholder="Developer Token" value={gadsDeveloperToken} onChange={e => setGadsDeveloperToken(e.target.value)}/>
-                  <input style={inputStyle} placeholder="OAuth Client ID" value={gadsClientId} onChange={e => setGadsClientId(e.target.value)}/>
-                  <input style={inputStyle} type="password" placeholder="OAuth Client Secret" value={gadsClientSecret} onChange={e => setGadsClientSecret(e.target.value)}/>
-                  <input style={inputStyle} type="password" placeholder="Refresh Token" value={gadsRefreshToken} onChange={e => setGadsRefreshToken(e.target.value)}/>
+                  {connected && <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Enter new credentials to update:</div>}
+                  <input style={inp} placeholder="Customer ID (e.g. 123-456-7890)" value={gadsCustomerId} onChange={e => setGadsCustomerId(e.target.value)}/>
+                  <input style={inp} placeholder="Developer Token" value={gadsDeveloperToken} onChange={e => setGadsDeveloperToken(e.target.value)}/>
+                  <input style={inp} placeholder="OAuth Client ID" value={gadsClientId} onChange={e => setGadsClientId(e.target.value)}/>
+                  <input style={inp} type="password" placeholder="OAuth Client Secret" value={gadsClientSecret} onChange={e => setGadsClientSecret(e.target.value)}/>
+                  <input style={inp} type="password" placeholder="Refresh Token" value={gadsRefreshToken} onChange={e => setGadsRefreshToken(e.target.value)}/>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
-                    <button className="btn sm primary" style={{ flex: 1 }} onClick={connectGoogleAds} disabled={loading || !gadsCustomerId}>{loading ? <><span className='faro-spinner'/>Connecting…</> : 'Connect'}</button>
+                    <button className="btn sm primary" style={{ flex: 1 }} onClick={connectGoogleAds} disabled={loading || !gadsCustomerId}>
+                      {loading ? <><span className="faro-spinner"/>Connecting…</> : connected ? 'Update' : 'Connect'}
+                    </button>
                   </div>
                 </div>
               )}
 
+              {/* GA4 form */}
               {isOpen && s.id === 'ga4' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <input style={inputStyle} placeholder="GA4 Property ID (e.g. 123456789)" value={ga4PropertyId} onChange={e => setGa4PropertyId(e.target.value)}/>
+                  {connected && <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Enter new property ID to update:</div>}
+                  <input style={inp} placeholder="GA4 Property ID (e.g. 123456789)" value={ga4PropertyId} onChange={e => setGa4PropertyId(e.target.value)}/>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
                     <button className="btn sm primary" style={{ flex: 1 }} onClick={connectGA4} disabled={loading || !ga4PropertyId}>
-                      {loading ? <><span className='faro-spinner'/>Connecting…</> : 'Connect'}
+                      {loading ? <><span className="faro-spinner"/>Connecting…</> : connected ? 'Update' : 'Connect'}
                     </button>
                   </div>
                 </div>
               )}
 
+              {/* Klaviyo form */}
               {isOpen && s.id === 'klaviyo' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <input style={inputStyle} type="password" placeholder="Klaviyo Private API Key" value={klaviyoKey} onChange={e => setKlaviyoKey(e.target.value)}/>
+                  {connected && <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Enter new API key to update:</div>}
+                  <input style={inp} type="password" placeholder="Klaviyo Private API Key" value={klaviyoKey} onChange={e => setKlaviyoKey(e.target.value)}/>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
                     <button className="btn sm primary" style={{ flex: 1 }} onClick={connectKlaviyo} disabled={loading || !klaviyoKey}>
-                      {loading ? <><span className='faro-spinner'/>Connecting…</> : 'Connect'}
+                      {loading ? <><span className="faro-spinner"/>Connecting…</> : connected ? 'Update' : 'Connect'}
                     </button>
                   </div>
                 </div>
               )}
 
+              {/* TikTok manual import form */}
               {isOpen && s.id === 'tt' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 8, fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>
-                    TikTok API access requires approval. Use manual import while waiting — paste spend/impressions/clicks/conversions data via Ask Faro.
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }}>Manual data import</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 4 }}>FROM</div>
+                      <input type="date" style={inp} value={ttDateFrom} onChange={e => setTtDateFrom(e.target.value)}/>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 4 }}>TO</div>
+                      <input type="date" style={inp} value={ttDateTo} onChange={e => setTtDateTo(e.target.value)}/>
+                    </div>
                   </div>
-                  <button className="btn sm primary" style={{ justifyContent: 'center' }} onClick={() => { setMsg('Manual import ready: use Ask Faro to paste your TikTok Ads Manager CSV export'); setConnecting(null) }}>Set up manual import</button>
-                  <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 4 }}>SPEND ($)</div>
+                      <input style={inp} type="number" placeholder="0.00" value={ttSpend} onChange={e => setTtSpend(e.target.value)}/>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 4 }}>IMPRESSIONS</div>
+                      <input style={inp} type="number" placeholder="0" value={ttImpressions} onChange={e => setTtImpressions(e.target.value)}/>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 4 }}>CLICKS</div>
+                      <input style={inp} type="number" placeholder="0" value={ttClicks} onChange={e => setTtClicks(e.target.value)}/>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 4 }}>CONVERSIONS</div>
+                      <input style={inp} type="number" placeholder="0" value={ttConversions} onChange={e => setTtConversions(e.target.value)}/>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 4 }}>ROAS</div>
+                      <input style={inp} type="number" placeholder="0.00" step="0.01" value={ttRoas} onChange={e => setTtRoas(e.target.value)}/>
+                    </div>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink-3)', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={ttApiMode} onChange={e => setTtApiMode(e.target.checked)}/>
+                    Also connect TikTok API (when approved)
+                  </label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
+                    <button className="btn sm primary" style={{ flex: 1 }} onClick={importTikTok}
+                      disabled={loading || !ttSpend || !ttDateFrom || !ttDateTo}>
+                      {loading ? <><span className="faro-spinner"/>Importing…</> : 'Save import'}
+                    </button>
+                  </div>
                 </div>
               )}
 
+              {/* Action buttons */}
               {!isOpen && (
-                <button
-                  className={'btn sm' + (connected ? ' ghost' : ' primary')}
-                  style={{ justifyContent: 'center' }}
-                  onClick={() => {
-                    if (['shopify', 'meta', 'ga4', 'gads', 'klaviyo', 'tt'].includes(s.id)) setConnecting(s.id)
-                    else setMsg(`${s.name} integration coming soon`)
-                  }}
-                >
-                  {connected ? 'Manage' : 'Connect'}
-                </button>
+                connected ? (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn sm ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setConnecting(s.id)}>Edit credentials</button>
+                    <button className="btn sm ghost" style={{ color: 'var(--dn)', justifyContent: 'center' }} onClick={() => removeConnection(s.id, s.name)}>Remove</button>
+                  </div>
+                ) : (
+                  <button className="btn sm primary" style={{ justifyContent: 'center' }} onClick={() => setConnecting(s.id)}>Connect</button>
+                )
               )}
             </div>
           )
         })}
       </div>
-      )}
     </div>
   )
 }
+
 
 const AVAILABLE_METRICS = [
   { key: 'revenue',         label: 'Revenue' },
