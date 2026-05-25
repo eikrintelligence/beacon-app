@@ -75,7 +75,7 @@ export function ScreenHome({ onNavigate, onAsk, revenueData, workspaceData, role
   const greeting = h < 12 ? 'good morning' : h < 18 ? 'good afternoon' : 'good evening'
   const [filter, setFilter] = useState('all')
   const [digestOpen, setDigestOpen] = useState(false)
-  const filtered = FEED.filter(f => filter === 'all' || f.tag === filter)
+  const filtered = []
   const filters = [['all','All'],['spike','Spikes'],['drop','Drops'],['goal','Goals'],['risk','Risks'],['opportunity','Opps']]
 
   // $500K pace tracker — use real data if available
