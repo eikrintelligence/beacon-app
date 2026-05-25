@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { Icon } from './shared'
 
 const BASE = 'https://sja.eikr.ee/api'
 
 export default function AcceptInvite({ inviteToken }) {
   const [info, setInfo] = useState(null)
   const [infoError, setInfoError] = useState('')
-  const [mode, setMode] = useState('signin')
+  const [mode, setMode] = useState(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
@@ -31,8 +30,6 @@ export default function AcceptInvite({ inviteToken }) {
     setLoading(true)
     setError('')
     try {
-      let accessToken
-
       if (mode === 'signup') {
         const reg = await fetch(`${BASE}/auth/signup`, {
           method: 'POST',
@@ -48,7 +45,7 @@ export default function AcceptInvite({ inviteToken }) {
         body: JSON.stringify({ email, password })
       }).then(r => r.json())
       if (login.error) throw new Error(login.error)
-      accessToken = login.access_token
+      const accessToken = login.access_token
 
       const accept = await fetch(`${BASE}/workspace/invite/accept`, {
         method: 'POST',
@@ -77,17 +74,31 @@ export default function AcceptInvite({ inviteToken }) {
     outline: 'none', boxSizing: 'border-box'
   }
 
+  const logoEl = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 40 }}>
+      <div style={{ width: 32, height: 32, background: 'var(--ink)', borderRadius: 9, display: 'grid', placeItems: 'center' }}>
+        <span style={{ color: 'var(--bg)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18 }}>s</span>
+      </div>
+      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, letterSpacing: '-0.02em' }}>
+        faro <span style={{ color: 'var(--ink-3)', fontWeight: 400 }}>by EIKR</span>
+      </span>
+    </div>
+  )
+
+  const inviteCard = info && (
+    <div style={{ padding: '16px 20px', background: 'var(--surface-2)', borderRadius: 14, marginBottom: 32, border: '1px solid var(--border)' }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>You've been invited to</div>
+      <div style={{ fontSize: 20, fontWeight: 700 }}>{info.workspace_name || 'a workspace'}</div>
+      <div style={{ marginTop: 4 }}>
+        <span className="chip" style={{ textTransform: 'capitalize' }}>{info.role || 'member'}</span>
+      </div>
+    </div>
+  )
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div style={{ width: '100%', maxWidth: 440 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 40 }}>
-          <div style={{ width: 32, height: 32, background: 'var(--ink)', borderRadius: 9, display: 'grid', placeItems: 'center' }}>
-            <span style={{ color: 'var(--bg)', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18 }}>s</span>
-          </div>
-          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, letterSpacing: '-0.02em' }}>
-            faro <span style={{ color: 'var(--ink-3)', fontWeight: 400 }}>by EIKR</span>
-          </span>
-        </div>
+        {logoEl}
 
         {loadingInfo ? (
           <div style={{ color: 'var(--ink-3)', fontSize: 15 }}>Loading invite...</div>
@@ -102,21 +113,50 @@ export default function AcceptInvite({ inviteToken }) {
             <h2 style={{ fontSize: 24, marginBottom: 8 }}>You're in!</h2>
             <p style={{ color: 'var(--ink-3)', fontSize: 15 }}>Redirecting to your workspace…</p>
           </div>
+        ) : mode === null ? (
+          <>
+            {inviteCard}
+            <h2 style={{ fontSize: 26, marginBottom: 6 }}>How would you like to join?</h2>
+            <p style={{ color: 'var(--ink-3)', marginBottom: 24, fontSize: 15 }}>Choose how you'd like to accept this invite.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <button onClick={() => setMode('signin')} style={{
+                padding: '20px 24px', borderRadius: 14, border: '1px solid var(--border)',
+                background: 'var(--surface)', cursor: 'pointer', textAlign: 'left',
+                display: 'flex', alignItems: 'center', gap: 16
+              }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--surface-2)', display: 'grid', placeItems: 'center', fontSize: 22, flexShrink: 0 }}>👤</div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 2 }}>I have an account — Sign in</div>
+                  <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>Sign in with your existing Faro account</div>
+                </div>
+              </button>
+              <button onClick={() => setMode('signup')} style={{
+                padding: '20px 24px', borderRadius: 14, border: '1px solid var(--border)',
+                background: 'var(--surface)', cursor: 'pointer', textAlign: 'left',
+                display: 'flex', alignItems: 'center', gap: 16
+              }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--surface-2)', display: 'grid', placeItems: 'center', fontSize: 22, flexShrink: 0 }}>✨</div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 2 }}>New to Faro — Create account</div>
+                  <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>Set up a free account and join this workspace</div>
+                </div>
+              </button>
+            </div>
+          </>
         ) : (
           <>
-            <div style={{ padding: '16px 20px', background: 'var(--surface-2)', borderRadius: 14, marginBottom: 32, border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>You were invited to</div>
-              <div style={{ fontSize: 20, fontWeight: 700 }}>{info?.workspace_name || 'a workspace'}</div>
-              <div style={{ marginTop: 4 }}>
-                <span className="chip" style={{ textTransform: 'capitalize' }}>{info?.role || 'member'}</span>
-              </div>
+            {inviteCard}
+            <div style={{ marginBottom: 20 }}>
+              <button onClick={() => { setMode(null); setError('') }} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--ink-3)', fontSize: 13, padding: 0
+              }}>← Back</button>
             </div>
-
             <h2 style={{ fontSize: 26, marginBottom: 6 }}>
               {mode === 'signin' ? 'Sign in to accept' : 'Create your account'}
             </h2>
             <p style={{ color: 'var(--ink-3)', marginBottom: 24, fontSize: 15 }}>
-              {mode === 'signin' ? 'Sign in to join this workspace' : 'Create an account to get started'}
+              {mode === 'signin' ? 'Sign in to join this workspace.' : 'Create a free account to get started.'}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -139,9 +179,8 @@ export default function AcceptInvite({ inviteToken }) {
 
             <button onClick={handleSubmit}
               disabled={loading || !email || !password || (mode === 'signup' && !fullName)}
-              style={{ width: '100%', marginTop: 20, padding: '14px', borderRadius: 12, border: 'none', background: 'var(--ink)', color: 'var(--bg)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', opacity: loading ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              style={{ width: '100%', marginTop: 20, padding: '14px', borderRadius: 12, border: 'none', background: 'var(--ink)', color: 'var(--bg)', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', opacity: loading ? 0.7 : 1 }}>
               {loading ? 'Please wait...' : mode === 'signin' ? 'Sign in & accept invite' : 'Create account & accept'}
-              {!loading && <Icon name="arrow-right" size={16}/>}
             </button>
 
             <div style={{ textAlign: 'center', marginTop: 18, fontSize: 14, color: 'var(--ink-3)' }}>
