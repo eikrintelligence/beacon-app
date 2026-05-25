@@ -12,6 +12,7 @@ import { ScreenSocial } from './ScreenSocial'
 import { ScreenWebsite } from './ScreenWebsite'
 import { ScreenAlerts } from './ScreenAlerts'
 import ScreenHistory from './ScreenHistory'
+import ScreenCohorts from './ScreenCohorts'
 import { ScreenSKU } from './ScreenSKU'
 import { ScreenSubscriptions } from './ScreenSubscriptions'
 import AcceptInvite from './AcceptInvite'
@@ -28,7 +29,7 @@ const NAV = [
   { id:'attribution',  label:'Attribution',    icon:'grid',     group:'analysis' },
   { id:'sku',          label:'Products',       icon:'grid',     group:'analysis' },
   { id:'subscriptions',label:'Subscriptions',  icon:'users',    group:'analysis' },
-  { id:'cohorts',      label:'Cohorts',        icon:'users',    group:'analysis', soon:true },
+  { id:'cohorts',      label:'Cohorts',        icon:'users',    group:'analysis' },
   { id:'goals',        label:'Goals',          icon:'target',   group:'analysis' },
   { id:'alerts',       label:'Alerts',         icon:'bell',     group:'analysis' },
   { id:'email',        label:'Email & SMS',   icon:'bell',     group:'analysis' },
@@ -270,6 +271,7 @@ function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token,
     case 'alerts': return <ScreenAlerts workspaceData={workspaceData} token={token} workspaceId={workspace?.id}/>
     case 'subscriptions': return <ScreenSubscriptions token={token} workspaceId={workspace?.id} workspaceData={workspaceData}/>
     case 'history': return <ScreenHistory workspaceData={workspaceData} token={token} workspaceId={workspace?.id}/>
+    case 'cohorts': return <ScreenCohorts token={token} workspaceId={workspace?.id} workspaceData={workspaceData}/>
     case 'email': return <ScreenEmail token={token} workspaceId={workspace?.id} onNavigate={navigate}/>
     case 'social': return <ScreenSocial token={token} workspaceId={workspace?.id}/>
     case 'website': return <ScreenWebsite token={token} workspaceId={workspace?.id} onNavigate={navigate}/>
