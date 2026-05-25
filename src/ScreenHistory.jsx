@@ -210,6 +210,7 @@ export default function ScreenHistory({ workspaceId }) {
           </div>
         </div>
       </div>
+      </>)}
 
     </div>
   )
