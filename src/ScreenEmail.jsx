@@ -12,7 +12,7 @@ function KpiCard({ label, value, sub, color }) {
   )
 }
 
-export function ScreenEmail({ token, workspaceId }) {
+export function ScreenEmail({ token, workspaceId, onNavigate }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -41,12 +41,22 @@ export function ScreenEmail({ token, workspaceId }) {
       {loading && <div className="muted">Loading...</div>}
 
       {!data && !loading && (
-        <div className="card" style={{ textAlign: 'center', padding: '48px 24px', maxWidth: 480, margin: '0 auto' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>&#128231;</div>
-          <h3 style={{ marginBottom: 8 }}>Connect Klaviyo</h3>
-          <p style={{ color: 'var(--ink-3)', fontSize: 14, lineHeight: 1.6 }}>
+        <div className="card" style={{ padding: '48px 36px', textAlign: 'center' }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>🔌</div>
+          <h3 style={{ marginBottom: 8 }}>Connect Klaviyo to see email data</h3>
+          <p style={{ color: 'var(--ink-3)', marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>
             Link your Klaviyo account to see list size, open rates, flow performance and attributed revenue.
           </p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28 }}>
+            <div style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>⬜</span>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontWeight: 600, fontSize: 13 }}>Klaviyo</div>
+                <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>Email lists, flows, campaigns</div>
+              </div>
+            </div>
+          </div>
+          <button className="btn primary" onClick={() => onNavigate('connections')}>Connect sources →</button>
         </div>
       )}
 

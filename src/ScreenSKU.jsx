@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { fmt, Icon } from './shared'
 
-export function ScreenSKU({ token, workspaceId }) {
+export function ScreenSKU({ token, workspaceId, onNavigate }) {
   const [products, setProducts] = useState(null)
   const [loading, setLoading] = useState(true)
   const [sort, setSort] = useState('revenue')
@@ -44,12 +44,22 @@ export function ScreenSKU({ token, workspaceId }) {
       {loading && <div className="muted">Loading...</div>}
 
       {!loading && data.length === 0 && (
-        <div className="card" style={{ textAlign: 'center', padding: '64px 24px', maxWidth: 480, margin: '0 auto' }}>
-          <div style={{ fontSize: 52, marginBottom: 20 }}>&#128722;</div>
-          <h2 style={{ marginBottom: 10 }}>No product data yet</h2>
-          <div style={{ color: 'var(--ink-3)', fontSize: 15, lineHeight: 1.6 }}>
-            Connect Shopify to see your top-selling products, units sold, and revenue breakdown.
+        <div className="card" style={{ padding: '48px 36px', textAlign: 'center' }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>🔌</div>
+          <h3 style={{ marginBottom: 8 }}>Connect Shopify to see your products</h3>
+          <p style={{ color: 'var(--ink-3)', marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>
+            Link your Shopify store to see top-selling products, units sold, and revenue breakdown.
+          </p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28 }}>
+            <div style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>⬜</span>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontWeight: 600, fontSize: 13 }}>Shopify</div>
+                <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>Orders, products, revenue</div>
+              </div>
+            </div>
           </div>
+          <button className="btn primary" onClick={() => onNavigate('connections')}>Connect sources →</button>
         </div>
       )}
 

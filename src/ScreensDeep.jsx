@@ -43,21 +43,32 @@ export function ScreenFunnel({ shape, workspaceData, onNavigate }) {
 
 
   const hasShopify = workspaceData?.connections?.some(c => c.platform === 'shopify' && c.status === 'active')
-  if (!hasShopify) return (
-    <div className="page">
-      <div className="page-head">
-        <div><h1>The funnel</h1><div className="sub">Connect Shopify to unlock real funnel data</div></div>
-      </div>
-      <div style={{ padding: '64px 24px', textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
-        <div style={{ fontSize: 52, marginBottom: 20 }}>&#128722;</div>
-        <h2 style={{ marginBottom: 10 }}>Connect Shopify to see your funnel</h2>
-        <div style={{ color: 'var(--ink-3)', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
-          Link your Shopify store to see a real customer journey from impression to order
-          — with drop-off rates, conversion benchmarks, and what-if simulations.
+  const hasGA4 = workspaceData?.connections?.some(c => c.platform === 'ga4' && c.status === 'active')
+  const hasFunnelData = hasShopify && hasGA4
+  if (!hasFunnelData) return (
+    <div className='page'>
+      <div className='page-head'><div><h1>Funnel</h1><div className='sub'>Customer journey from impression to order</div></div></div>
+      <div className='card' style={{ padding: '48px 36px', textAlign: 'center' }}>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>🔌</div>
+        <h3 style={{ marginBottom: 8 }}>Connect your data sources to see the funnel</h3>
+        <p style={{ color: 'var(--ink-3)', marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>
+          The funnel requires data from multiple platforms to show the complete customer journey.
+        </p>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 28 }}>
+          {[
+            { name: 'Shopify', connected: hasShopify, desc: 'Orders, checkout, cart data' },
+            { name: 'Google Analytics', connected: hasGA4, desc: 'Sessions, page views, behavior' },
+          ].map(s => (
+            <div key={s.name} style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid var(--border)', background: s.connected ? 'color-mix(in oklab, var(--up) 10%, var(--surface))' : 'var(--surface)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>{s.connected ? '✅' : '⬜'}</span>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontWeight: 600, fontSize: 13 }}>{s.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>{s.desc}</div>
+              </div>
+            </div>
+          ))}
         </div>
-        <button className="btn primary" onClick={() => onNavigate && onNavigate('connections')}>
-          Connect Shopify →
-        </button>
+        <button className='btn primary' onClick={() => onNavigate('connections')}>Connect sources →</button>
       </div>
     </div>
   )
@@ -103,7 +114,7 @@ export function ScreenFunnel({ shape, workspaceData, onNavigate }) {
               <button key={d} className={'btn sm' + (days === d ? ' primary' : '')} onClick={() => setDays(d)}>Last {d}d</button>
             ))}
           </div>
-          {hasShopify && (
+          {hasFunnelData && (
             <button className="btn sm" onClick={syncFunnel} disabled={syncing}>
               {syncing ? 'Syncing…' : 'Sync funnel data'}
             </button>
