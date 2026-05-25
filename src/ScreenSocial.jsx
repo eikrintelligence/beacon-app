@@ -160,8 +160,7 @@ export function ScreenSocial({ token, workspaceId }) {
       <div className="card">
         <h3 style={{ marginBottom: 4 }}>About this dashboard</h3>
         <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6 }}>
-          Enter your social metrics manually each week. Click <strong>Update</strong> on any platform card to enter the latest numbers.
-          API integrations for Instagram, TikTok and Facebook are coming soon.
+          Enter metrics manually with <strong>Update</strong>, or use <strong>Import CSV</strong> above. CSV columns: <code>date, platform, followers, growth, engagement_rate, posts_this_week</code>. Platforms: instagram, tiktok, facebook.
         </div>
       </div>
     </div>
