@@ -115,11 +115,11 @@ export async function getCustomers(token, workspaceId) {
 }
 
 // AI
-export async function askAI(token, workspaceId, question, history = []) {
+export async function askAI(token, workspaceId, question, threadId = null) {
   const res = await fetch(`${BASE}/ai/ask`, {
     method: 'POST',
     headers: authHeaders(token),
-    body: JSON.stringify({ question, history, workspace_id: workspaceId })
+    body: JSON.stringify({ question, workspace_id: workspaceId, thread_id: threadId })
   })
   return res.json()
 }

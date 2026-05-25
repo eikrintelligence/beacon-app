@@ -246,50 +246,73 @@ const SUGGESTIONS = [
 const BASE_API = 'https://sja.eikr.ee/api'
 
 export function ScreenAsk({ token, workspaceId }) {
-  const [input, setInput]                     = useState('')
-  const [threads, setThreads]                 = useState([])
-  const [history, setHistory]                 = useState([])
-  const [loading, setLoading]                 = useState(false)
-  const [savedThreads, setSavedThreads]       = useState([])
-  const [loadingThreads, setLoadingThreads]   = useState(false)
+  // { [threadId]: [{q, a}] }  — each thread's display bubbles stored separately
+  const [threadMessages, setThreadMessages]   = useState({})
   const [currentThreadId, setCurrentThreadId] = useState(null)
+  const [savedThreads, setSavedThreads]       = useState([])
+  const [input, setInput]                     = useState('')
+  const [loadingMsg, setLoadingMsg]           = useState(false)
+  const [creatingThread, setCreatingThread]   = useState(false)
+  const [loadingThreadId, setLoadingThreadId] = useState(null)
   const [showThreads, setShowThreads]         = useState(false)
   const inputRef  = useRef(null)
   const bottomRef = useRef(null)
 
+  const currentMsgs = threadMessages[currentThreadId] || []
+
+  // Load saved threads on mount
   useEffect(() => {
     inputRef.current?.focus()
     if (!token || !workspaceId) return
-    setLoadingThreads(true)
     fetch(`${BASE_API}/threads?workspace_id=${workspaceId}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(r => r.json())
       .then(d => setSavedThreads(Array.isArray(d) ? d : []))
       .catch(() => {})
-      .finally(() => setLoadingThreads(false))
   }, [token, workspaceId])
 
+  // Auto-scroll when messages arrive
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [threads])
+  }, [currentMsgs.length, loadingMsg])
 
-  function startNewThread() {
-    setThreads([])
-    setHistory([])
-    setCurrentThreadId(null)
+  // Create a thread, return its id
+  async function createThread(title = 'New conversation') {
+    const th = await fetch(`${BASE_API}/threads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ workspace_id: workspaceId, title })
+    }).then(r => r.json())
+    if (!th.id) throw new Error('Failed to create thread')
+    setCurrentThreadId(th.id)
+    setThreadMessages(prev => ({ ...prev, [th.id]: [] }))
+    setSavedThreads(prev => [th, ...prev])
+    return th.id
+  }
+
+  // New button — create immediately, clear input, focus
+  async function startNewThread() {
     setShowThreads(false)
+    setCreatingThread(true)
+    try { await createThread() } catch {}
+    setCreatingThread(false)
     setInput('')
     setTimeout(() => inputRef.current?.focus(), 50)
   }
 
-  async function loadThread(th) {
+  // Switch thread — load messages from DB if not already cached
+  async function switchThread(th) {
     setShowThreads(false)
-    setLoading(true)
+    setCurrentThreadId(th.id)
+    if (threadMessages[th.id] !== undefined) return
+
+    setLoadingThreadId(th.id)
     try {
       const msgs = await fetch(`${BASE_API}/threads/${th.id}/messages`, {
         headers: { Authorization: `Bearer ${token}` }
       }).then(r => r.json())
+      // Pair messages into display bubbles
       const pairs = []
       for (let i = 0; i < msgs.length; i++) {
         if (msgs[i].role === 'user') {
@@ -298,114 +321,116 @@ export function ScreenAsk({ token, workspaceId }) {
           if (nxt?.role === 'assistant') i++
         }
       }
-      setThreads(pairs)
-      setHistory(msgs.map(m => ({ role: m.role, content: m.content })))
-      setCurrentThreadId(th.id)
+      setThreadMessages(prev => ({ ...prev, [th.id]: pairs }))
     } catch {}
-    setLoading(false)
+    setLoadingThreadId(null)
   }
 
-  async function saveMsg(threadId, role, content) {
-    if (!threadId || !token) return
+  // Delete thread
+  async function deleteThread(e, threadId) {
+    e.stopPropagation()
+    if (!window.confirm('Delete this conversation?')) return
     try {
-      await fetch(`${BASE_API}/threads/${threadId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ role, content, workspace_id: workspaceId })
+      await fetch(`${BASE_API}/threads/${threadId}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
       })
+      const remaining = savedThreads.filter(t => t.id !== threadId)
+      setSavedThreads(remaining)
+      setThreadMessages(prev => { const n = {...prev}; delete n[threadId]; return n })
+      if (currentThreadId === threadId) setCurrentThreadId(remaining[0]?.id || null)
     } catch {}
   }
 
-  async function submit(q) {
+  // Submit question — auto-creates thread if none exists
+  async function submit(q, explicitThreadId) {
     const question = (q || input).trim()
-    if (!question || loading) return
+    if (!question || loadingMsg) return
     setInput('')
-    setLoading(true)
+    setLoadingMsg(true)
 
-    // Create Supabase thread on first message in a new conversation
-    let threadId = currentThreadId
-    if (!threadId && token && workspaceId) {
-      try {
-        const th = await fetch(`${BASE_API}/threads`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ workspace_id: workspaceId, title: question.slice(0, 80) })
-        }).then(r => r.json())
-        if (th.id) {
-          threadId = th.id
-          setCurrentThreadId(th.id)
-          setSavedThreads(prev => [th, ...prev.slice(0, 9)])
-        }
-      } catch {}
+    let threadId = explicitThreadId || currentThreadId
+    const isFirstMsg = !(threadMessages[threadId] || []).length
+
+    // Auto-create thread if needed
+    if (!threadId) {
+      try { threadId = await createThread() } catch { setLoadingMsg(false); return }
     }
 
-    await saveMsg(threadId, 'user', question)
-
-    const updatedHistory = [...history, { role: 'user', content: question }]
-    setHistory(updatedHistory)
-    setThreads(prev => [...prev, { q: question, a: null }])
+    // Optimistic pending bubble
+    setThreadMessages(prev => ({
+      ...prev,
+      [threadId]: [...(prev[threadId] || []), { q: question, a: null }]
+    }))
 
     try {
       const { askAI } = await import('./api')
-      const result = await askAI(token, workspaceId, question, updatedHistory.slice(-12))
-      const answer = result.answer
-      await saveMsg(threadId, 'assistant', answer)
-      setHistory(prev => [...prev, { role: 'assistant', content: answer }])
-      setThreads(prev => {
-        const next = [...prev]
-        next[next.length - 1] = { q: question, a: answer }
-        return next
+      const result = await askAI(token, workspaceId, question, threadId)
+      const answer = result.answer || result.error || 'No response received'
+
+      setThreadMessages(prev => {
+        const msgs = [...(prev[threadId] || [])]
+        if (msgs.length) msgs[msgs.length - 1] = { q: question, a: answer }
+        return { ...prev, [threadId]: msgs }
       })
+
+      // Update thread title on first message / bump updated_at in list
+      setSavedThreads(prev => prev.map(t => {
+        if (t.id !== threadId) return t
+        return {
+          ...t,
+          title:      isFirstMsg ? question.slice(0, 80) : t.title,
+          updated_at: new Date().toISOString()
+        }
+      }))
     } catch {
-      setThreads(prev => {
-        const next = [...prev]
-        next[next.length - 1] = { q: question, a: 'Sorry — could not reach Faro backend. Check your connection.' }
-        return next
+      setThreadMessages(prev => {
+        const msgs = [...(prev[threadId] || [])]
+        if (msgs.length) msgs[msgs.length - 1] = { q: question, a: 'Sorry — could not reach Faro backend.' }
+        return { ...prev, [threadId]: msgs }
       })
     }
-    setLoading(false)
+    setLoadingMsg(false)
   }
+
+  const isLoadingThread = loadingThreadId === currentThreadId
 
   return (
     <>
       {/* Threads sidebar */}
       {showThreads && (
         <div style={{ position:'fixed', inset:0, zIndex:90, background:'rgba(0,0,0,0.3)' }} onClick={() => setShowThreads(false)}>
-          <div style={{ position:'absolute', top:0, right:0, bottom:0, width:300, background:'var(--surface)', borderLeft:'1px solid var(--border)', boxShadow:'-8px 0 32px rgba(0,0,0,0.15)', display:'flex', flexDirection:'column' }} onClick={e => e.stopPropagation()}>
+          <div style={{ position:'absolute', top:0, right:0, bottom:0, width:320, background:'var(--surface)', borderLeft:'1px solid var(--border)', boxShadow:'-8px 0 32px rgba(0,0,0,0.15)', display:'flex', flexDirection:'column' }} onClick={e => e.stopPropagation()}>
             <div style={{ padding:'20px 20px 16px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
               <h3 style={{ margin:0, fontSize:16 }}>Conversations</h3>
               <button className="btn sm ghost" onClick={() => setShowThreads(false)}>✕</button>
             </div>
             <div style={{ flex:1, overflowY:'auto', padding:'8px 12px' }}>
-              {threads.length > 0 && (
-                <>
-                  <div style={{ fontSize:10, fontWeight:600, color:'var(--ink-4)', letterSpacing:'0.07em', textTransform:'uppercase', padding:'8px 8px 4px' }}>THIS SESSION</div>
-                  <button style={{ width:'100%', textAlign:'left', padding:'10px 12px', borderRadius:8, border:'none', background:currentThreadId ? 'transparent' : 'color-mix(in oklab,var(--accent) 10%,var(--surface))', cursor:'pointer', fontSize:13, color:'var(--ink)', display:'block', marginBottom:4 }} onClick={() => setShowThreads(false)}>
-                    <div style={{ fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{threads[0]?.q?.slice(0, 50) || 'Current conversation'}</div>
-                    <div style={{ fontSize:11, color:'var(--ink-3)', marginTop:2 }}>{threads.length} exchange{threads.length !== 1 ? 's' : ''} this session</div>
-                  </button>
-                </>
-              )}
-              {savedThreads.length > 0 && (
-                <>
-                  <div style={{ fontSize:10, fontWeight:600, color:'var(--ink-4)', letterSpacing:'0.07em', textTransform:'uppercase', padding:'12px 8px 4px' }}>SAVED</div>
-                  {savedThreads.map(th => (
-                    <button key={th.id} style={{ width:'100%', textAlign:'left', padding:'10px 12px', borderRadius:8, border:'none', background:th.id === currentThreadId ? 'color-mix(in oklab,var(--accent) 10%,var(--surface))' : 'transparent', cursor:'pointer', fontSize:13, color:'var(--ink)', display:'block', marginBottom:2 }} onClick={() => loadThread(th)}>
-                      <div style={{ fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{th.title}</div>
-                      <div style={{ fontSize:11, color:'var(--ink-3)', marginTop:2 }}>{new Date(th.updated_at).toLocaleDateString()}</div>
-                    </button>
-                  ))}
-                </>
-              )}
-              {!threads.length && !savedThreads.length && (
+              {savedThreads.length === 0 ? (
                 <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--ink-3)', fontSize:13 }}>
-                  {loadingThreads ? 'Loading...' : 'No conversations yet. Start by asking a question!'}
+                  No saved conversations yet — start by asking a question
                 </div>
+              ) : (
+                savedThreads.map(th => (
+                  <div key={th.id} style={{ display:'flex', alignItems:'center', gap:4, marginBottom:2 }}>
+                    <button
+                      style={{ flex:1, textAlign:'left', padding:'10px 12px', borderRadius:8, border:'none', background: th.id === currentThreadId ? 'color-mix(in oklab,var(--accent) 10%,var(--surface))' : 'transparent', cursor:'pointer', fontSize:13, color:'var(--ink)' }}
+                      onClick={() => switchThread(th)}
+                    >
+                      <div style={{ fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{th.title}</div>
+                      <div style={{ fontSize:11, color:'var(--ink-3)', marginTop:2 }}>{new Date(th.updated_at || th.created_at).toLocaleDateString()}</div>
+                    </button>
+                    <button
+                      style={{ padding:'6px 8px', borderRadius:6, border:'none', background:'transparent', color:'var(--ink-4)', cursor:'pointer', fontSize:12, lineHeight:1, flexShrink:0, opacity:0.6 }}
+                      onClick={e => deleteThread(e, th.id)}
+                      title="Delete conversation"
+                    >✕</button>
+                  </div>
+                ))
               )}
             </div>
             <div style={{ padding:'12px', borderTop:'1px solid var(--border)' }}>
-              <button className="btn primary" style={{ width:'100%', justifyContent:'center' }} onClick={startNewThread}>
-                <Icon name="plus" size={14}/> New conversation
+              <button className="btn primary" style={{ width:'100%', justifyContent:'center' }} onClick={startNewThread} disabled={creatingThread}>
+                {creatingThread ? 'Creating…' : <><Icon name="plus" size={14}/> New conversation</>}
               </button>
             </div>
           </div>
@@ -420,20 +445,25 @@ export function ScreenAsk({ token, workspaceId }) {
             </div>
             <div>
               <h1 style={{ fontSize:28 }}>Ask Faro</h1>
-              <div className="sub">Plain-English questions across all your data.</div>
+              <div className="sub" style={{ maxWidth:380, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {currentThreadId
+                  ? (savedThreads.find(t => t.id === currentThreadId)?.title || 'Conversation')
+                  : 'Plain-English questions across all your data'}
+              </div>
             </div>
           </div>
           <div className="actions">
             <button className="btn" onClick={() => setShowThreads(v => !v)}>
               <Icon name="list" size={14}/> Threads{savedThreads.length > 0 ? ` (${savedThreads.length})` : ''}
             </button>
-            <button className="btn primary" onClick={startNewThread}>
-              <Icon name="plus" size={14}/> New
+            <button className="btn primary" onClick={startNewThread} disabled={creatingThread}>
+              <Icon name="plus" size={14}/> {creatingThread ? 'Creating…' : 'New'}
             </button>
           </div>
         </div>
 
-        {threads.length === 0 && (
+        {/* Suggestions — shown when current thread has no messages yet */}
+        {currentMsgs.length === 0 && !isLoadingThread && (
           <div className="fade-in">
             <div className="tag" style={{ marginBottom:12 }}>TRY ASKING</div>
             <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
@@ -446,8 +476,16 @@ export function ScreenAsk({ token, workspaceId }) {
           </div>
         )}
 
+        {/* Thread loading state */}
+        {isLoadingThread && (
+          <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:13 }}>
+            Loading conversation…
+          </div>
+        )}
+
+        {/* Messages */}
         <div className="ask-thread">
-          {threads.map((t, i) => (
+          {currentMsgs.map((t, i) => (
             <div key={i} className="fade-in" style={{ display:'flex', flexDirection:'column', gap:10 }}>
               <div className="ask-bubble user">
                 <div style={{ fontWeight:500 }}>{t.q}</div>
@@ -488,12 +526,12 @@ export function ScreenAsk({ token, workspaceId }) {
             <span style={{ color:'var(--accent)' }}><Icon name="sparkles" size={16}/></span>
             <input
               ref={inputRef}
-              placeholder="are we on pace for $500K? · which product is selling best? · how is TAILWAG10 performing?"
+              placeholder="Ask a question — or click New to start a fresh conversation"
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && submit()}
             />
-            <button className="btn sm primary" onClick={() => submit()} disabled={!input.trim() || loading}>
+            <button className="btn sm primary" onClick={() => submit()} disabled={!input.trim() || loadingMsg}>
               <Icon name="send" size={13}/> Ask
             </button>
           </div>
