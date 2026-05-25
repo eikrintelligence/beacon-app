@@ -18,6 +18,9 @@ import { ScreenSubscriptions } from './ScreenSubscriptions'
 import AcceptInvite from './AcceptInvite'
 import PublicView from './PublicView'
 import { getWorkspace, getRevenue, createWorkspace } from './api'
+import { PortalAnalyst } from './PortalAnalyst'
+import { PortalClient } from './PortalClient'
+import { PortalAgency } from './PortalAgency'
 
 const ACCENTS = ['#ec6b4e','#4a8c6e','#6b8cff','#a86bc4']
 
@@ -120,6 +123,11 @@ function AppShell() {
       onComplete={() => { setNeedOnboarding(false); window.location.reload() }}
     />
   )
+
+  // Role-based portal routing — non-admin roles get dedicated portal UX
+  if (role === 'analyst') return <PortalAnalyst token={token} workspaceId={workspace?.id} workspace={workspace} logout={logout} workspaceData={workspaceData}/>
+  if (role === 'client')  return <PortalClient  token={token} workspaceId={workspace?.id} workspace={workspace} logout={logout} workspaceData={workspaceData} revenueData={revenueData}/>
+  if (role === 'agency')  return <PortalAgency  token={token} workspaceId={workspace?.id} workspace={workspace} logout={logout}/>
 
   const allowedNav = ROLE_NAV[role] || ROLE_NAV.admin
   const filteredNav = NAV.filter(n => allowedNav.includes(n.id))
