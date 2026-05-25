@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
+import Papa from 'papaparse'
 import { fmt, Icon, SrcIcon, Sparkline, Donut, StackBar } from './shared'
 
 export function ScreenFunnel({ shape, workspaceData, onNavigate }) {
@@ -229,15 +230,9 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
   const [gadsClientId, setGadsClientId] = useState('')
   const [gadsClientSecret, setGadsClientSecret] = useState('')
   const [gadsRefreshToken, setGadsRefreshToken] = useState('')
-  // TikTok manual import
-  const [ttDateFrom, setTtDateFrom] = useState('')
-  const [ttDateTo, setTtDateTo] = useState('')
-  const [ttSpend, setTtSpend] = useState('')
-  const [ttImpressions, setTtImpressions] = useState('')
-  const [ttClicks, setTtClicks] = useState('')
-  const [ttConversions, setTtConversions] = useState('')
-  const [ttRoas, setTtRoas] = useState('')
-  const [ttApiMode, setTtApiMode] = useState(false)
+  // TikTok CSV import
+  const [ttParsed, setTtParsed] = useState(null)
+  const [ttParseError, setTtParseError] = useState('')
 
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
@@ -353,15 +348,44 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
     setLoading(false)
   }
 
+  function handleTtFile(file) {
+    if (!file) return
+    setTtParseError(''); setTtParsed(null)
+    const reader = new FileReader()
+    reader.onload = e => {
+      try {
+        const result = Papa.parse(e.target.result, { header: true, skipEmptyLines: true, transformHeader: h => h.trim() })
+        if (!result.data.length) { setTtParseError('CSV appears empty'); return }
+        const COL_SPEND = ['Cost', 'Spend(USD)', 'Spend (USD)', 'Spend', 'Cost (USD)', 'Total Cost']
+        const COL_NAME  = ['Campaign name', 'Ad Group Name', 'Ad Name', 'Campaign Name']
+        const COL_ROAS  = ['Purchase ROAS', 'ROAS', 'Web Purchase ROAS', 'Purchase Roas']
+        const COL_CONV  = ['Conversions', 'Complete Payment', 'Purchase', 'Purchases']
+        const getField  = (row, names) => { for (const n of names) if (row[n] !== undefined) return row[n]; return '' }
+        const rows = result.data.map(row => ({
+          campaign:    getField(row, COL_NAME)  || 'Unknown',
+          date:        row['Date'] || row['date'] || '',
+          spend:       parseFloat(getField(row, COL_SPEND))  || 0,
+          impressions: parseInt(row['Impressions'])           || 0,
+          clicks:      parseInt(row['Clicks'])                || 0,
+          conversions: parseInt(getField(row, COL_CONV))     || 0,
+          roas:        parseFloat(getField(row, COL_ROAS))   || 0,
+        })).filter(r => r.spend > 0 || r.impressions > 0)
+        if (!rows.length) {
+          setTtParseError('No data rows found. Columns detected: ' + result.meta.fields?.slice(0,5).join(', '))
+          return
+        }
+        setTtParsed(rows)
+      } catch (err) { setTtParseError('Parse error: ' + err.message) }
+    }
+    reader.readAsText(file)
+  }
+
   async function importTikTok() {
+    if (!ttParsed || !ttParsed.length) return
     setLoading(true); setMsg('')
     try {
-      const ctr = ttClicks && ttImpressions ? ((parseInt(ttClicks) / parseInt(ttImpressions)) * 100).toFixed(2) : 0
-      const r = await post('https://sja.eikr.ee/api/tiktok/import', {
-        workspace_id: workspaceId,
-        data: { date_from: ttDateFrom, date_to: ttDateTo, spend: parseFloat(ttSpend) || 0, impressions: parseInt(ttImpressions) || 0, clicks: parseInt(ttClicks) || 0, conversions: parseInt(ttConversions) || 0, roas: parseFloat(ttRoas) || 0, ctr }
-      })
-      if (r.success) { setMsg('✓ TikTok data imported'); setConnecting(null) }
+      const r = await post('https://sja.eikr.ee/api/tiktok/import', { workspace_id: workspaceId, data: ttParsed })
+      if (r.success) { setMsg(`✓ TikTok: ${r.rows} campaigns imported`); setConnecting(null); setTtParsed(null) }
       else setMsg('Error: ' + r.error)
     } catch (e) { setMsg('Import failed: ' + e.message) }
     setLoading(false)
@@ -499,57 +523,63 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
                 </div>
               )}
 
-              {/* TikTok manual import form */}
+              {/* TikTok CSV import */}
               {isOpen && s.id === 'tt' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }}>Manual data import</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 4 }}>FROM</div>
-                      <input type="date" style={inp} value={ttDateFrom} onChange={e => setTtDateFrom(e.target.value)}/>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 4 }}>TO</div>
-                      <input type="date" style={inp} value={ttDateTo} onChange={e => setTtDateTo(e.target.value)}/>
-                    </div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5, padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 8 }}>
+                    <strong style={{ color: 'var(--ink-2)' }}>How to export:</strong> TikTok Ads Manager → Reporting → select date range → Export CSV
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 4 }}>SPEND ($)</div>
-                      <input style={inp} type="number" placeholder="0.00" value={ttSpend} onChange={e => setTtSpend(e.target.value)}/>
+                  <label style={{ cursor: 'pointer' }}>
+                    <div style={{ padding: '20px 16px', border: '2px dashed var(--border)', borderRadius: 10, textAlign: 'center', background: ttParsed ? 'color-mix(in oklab,var(--up) 8%,var(--surface))' : 'var(--surface)', transition: 'background 0.15s' }}>
+                      {ttParsed ? (
+                        <div style={{ color: 'var(--up)', fontWeight: 600, fontSize: 13 }}>✓ {ttParsed.length} campaign{ttParsed.length !== 1 ? 's' : ''} parsed — click to replace file</div>
+                      ) : (
+                        <div style={{ color: 'var(--ink-3)', fontSize: 13 }}>📂 Click to select TikTok Ads Manager CSV</div>
+                      )}
                     </div>
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 4 }}>IMPRESSIONS</div>
-                      <input style={inp} type="number" placeholder="0" value={ttImpressions} onChange={e => setTtImpressions(e.target.value)}/>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 4 }}>CLICKS</div>
-                      <input style={inp} type="number" placeholder="0" value={ttClicks} onChange={e => setTtClicks(e.target.value)}/>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 4 }}>CONVERSIONS</div>
-                      <input style={inp} type="number" placeholder="0" value={ttConversions} onChange={e => setTtConversions(e.target.value)}/>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-3)', marginBottom: 4 }}>ROAS</div>
-                      <input style={inp} type="number" placeholder="0.00" step="0.01" value={ttRoas} onChange={e => setTtRoas(e.target.value)}/>
-                    </div>
-                  </div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink-3)', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={ttApiMode} onChange={e => setTtApiMode(e.target.checked)}/>
-                    Also connect TikTok API (when approved)
+                    <input type="file" accept=".csv,.tsv" style={{ display: 'none' }} onChange={e => handleTtFile(e.target.files[0])}/>
                   </label>
+                  {ttParseError && <div style={{ color: 'var(--dn)', fontSize: 12, lineHeight: 1.4 }}>{ttParseError}</div>}
+                  {ttParsed && ttParsed.length > 0 && (
+                    <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 8 }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                        <thead>
+                          <tr style={{ background: 'var(--surface-2)' }}>
+                            {['Campaign', 'Spend', 'Impr.', 'Clicks', 'Conv.', 'ROAS'].map(h => (
+                              <th key={h} style={{ textAlign: h === 'Campaign' ? 'left' : 'right', padding: '6px 10px', color: 'var(--ink-3)', fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ttParsed.slice(0, 6).map((row, i) => (
+                            <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
+                              <td style={{ padding: '5px 10px', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={row.campaign}>{row.campaign}</td>
+                              <td style={{ padding: '5px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>${row.spend.toLocaleString()}</td>
+                              <td style={{ padding: '5px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{row.impressions.toLocaleString()}</td>
+                              <td style={{ padding: '5px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{row.clicks.toLocaleString()}</td>
+                              <td style={{ padding: '5px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{row.conversions}</td>
+                              <td style={{ padding: '5px 10px', textAlign: 'right', fontWeight: 600, color: row.roas >= 2 ? 'var(--up)' : row.roas > 0 ? 'var(--ink)' : 'var(--ink-3)' }}>{row.roas > 0 ? `${row.roas}×` : '—'}</td>
+                            </tr>
+                          ))}
+                          {ttParsed.length > 6 && (
+                            <tr style={{ borderTop: '1px solid var(--border)' }}>
+                              <td colSpan={6} style={{ padding: '5px 10px', color: 'var(--ink-3)', fontSize: 10, textAlign: 'center' }}>+ {ttParsed.length - 6} more campaigns</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
-                    <button className="btn sm primary" style={{ flex: 1 }} onClick={importTikTok}
-                      disabled={loading || !ttSpend || !ttDateFrom || !ttDateTo}>
-                      {loading ? <><span className="faro-spinner"/>Importing…</> : 'Save import'}
+                    <button className="btn sm" onClick={() => { setConnecting(null); setTtParsed(null); setTtParseError('') }}>Cancel</button>
+                    <button className="btn sm primary" style={{ flex: 1, justifyContent: 'center' }} onClick={importTikTok} disabled={loading || !ttParsed || !ttParsed.length}>
+                      {loading ? <><span className="faro-spinner"/>Importing…</> : ttParsed ? `Import ${ttParsed.length} campaigns` : 'Select a CSV first'}
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Action buttons */}
+                            {/* Action buttons */}
               {!isOpen && (
                 connected ? (
                   <div style={{ display: 'flex', gap: 8 }}>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import Papa from 'papaparse'
 import { Icon } from './shared'
 
 const PLATFORMS = [
@@ -22,6 +23,8 @@ export function ScreenSocial({ token, workspaceId }) {
     setDraft({ ...metrics[platformId] })
   }
 
+  const [csvMsg, setCsvMsg] = useState('')
+
   function saveEdit() {
     const next = { ...metrics, [editing]: { ...draft } }
     setMetrics(next)
@@ -29,6 +32,41 @@ export function ScreenSocial({ token, workspaceId }) {
     setEditing(null)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
+  }
+
+  function handleSocialCsv(file) {
+    if (!file) return
+    setCsvMsg('')
+    const reader = new FileReader()
+    reader.onload = e => {
+      try {
+        const result = Papa.parse(e.target.result, { header: true, skipEmptyLines: true, transformHeader: h => h.trim().toLowerCase() })
+        if (!result.data.length) { setCsvMsg('CSV appears empty'); return }
+        // group by platform, take latest row per platform
+        const byPlatform = {}
+        result.data.forEach(row => {
+          const pid = (row.platform || '').toLowerCase()
+          if (!pid) return
+          if (!byPlatform[pid] || (row.date || '') > (byPlatform[pid].date || '')) byPlatform[pid] = row
+        })
+        if (!Object.keys(byPlatform).length) { setCsvMsg('No platform column found in CSV'); return }
+        const next = { ...metrics }
+        Object.entries(byPlatform).forEach(([pid, row]) => {
+          next[pid] = {
+            followers:       parseInt(row.followers)                               || next[pid]?.followers       || 0,
+            growth:          parseInt(row.growth ?? row.reach)                    || next[pid]?.growth           || 0,
+            engagement_rate: parseFloat(row.engagement ?? row.engagement_rate)    || next[pid]?.engagement_rate  || 0,
+            posts_this_week: parseInt(row.posts ?? row.posts_this_week)           || next[pid]?.posts_this_week  || 0,
+          }
+        })
+        setMetrics(next)
+        try { localStorage.setItem(storageKey, JSON.stringify(next)) } catch {}
+        const updated = Object.keys(byPlatform).join(', ')
+        setCsvMsg('✓ Updated: ' + updated)
+        setTimeout(() => setCsvMsg(''), 4000)
+      } catch (err) { setCsvMsg('Parse error: ' + err.message) }
+    }
+    reader.readAsText(file)
   }
 
   const totalFollowers = Object.values(metrics).reduce((s, m) => s + (m.followers || 0), 0)
@@ -42,7 +80,17 @@ export function ScreenSocial({ token, workspaceId }) {
           <h1>Social media</h1>
           <div className="sub">{hasData ? `${totalFollowers.toLocaleString()} total followers` : 'Enter your social metrics below'}</div>
         </div>
-        {saved && <div style={{ padding: '8px 16px', borderRadius: 10, background: 'color-mix(in oklab, var(--up) 12%, var(--surface))', color: 'var(--up)', fontSize: 13, fontWeight: 600 }}>✓ Saved</div>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {(saved || csvMsg) && (
+            <div style={{ padding: '8px 16px', borderRadius: 10, background: csvMsg.startsWith('✓') || saved ? 'color-mix(in oklab, var(--up) 12%, var(--surface))' : 'color-mix(in oklab,var(--dn) 12%,var(--surface))', color: csvMsg.startsWith('✓') || saved ? 'var(--up)' : 'var(--dn)', fontSize: 13, fontWeight: 600 }}>
+              {csvMsg || '✓ Saved'}
+            </div>
+          )}
+          <label style={{ cursor: 'pointer' }}>
+            <div className="btn sm ghost" style={{ pointerEvents: 'none' }}>Import CSV</div>
+            <input type="file" accept=".csv" style={{ display: 'none' }} onChange={e => { handleSocialCsv(e.target.files[0]); e.target.value = '' }}/>
+          </label>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
