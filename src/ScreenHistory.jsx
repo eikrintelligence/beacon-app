@@ -133,7 +133,7 @@ export default function ScreenHistory({ workspaceId }) {
         </div>
       )}
 
-      {!empty && (<>{/* KPI Row */}<
+      {!empty && (<>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>
         {[
           { label: 'Total Revenue', value: fmtMoney(totalRev) },
