@@ -497,7 +497,103 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
   )
 }
 
-export function ScreenDashboards({ token, workspaceId }) {
+const AVAILABLE_METRICS = [
+  { key: 'revenue',         label: 'Revenue' },
+  { key: 'orders',          label: 'Orders' },
+  { key: 'aov',             label: 'AOV' },
+  { key: 'roas',            label: 'ROAS' },
+  { key: 'cac',             label: 'CAC' },
+  { key: 'cvr',             label: 'Conversion Rate' },
+  { key: 'email_open_rate', label: 'Email Open Rate' },
+]
+
+function getMetricValue(key, revenueData) {
+  const r = revenueData || {}
+  if (key === 'revenue')         return r.revenue         != null ? fmt(r.revenue)                           : '—'
+  if (key === 'orders')          return r.orders          != null ? r.orders.toLocaleString()                 : '—'
+  if (key === 'aov')             return r.aov             != null ? fmt(r.aov)                               : '—'
+  if (key === 'roas')            return r.roas            != null ? `${parseFloat(r.roas).toFixed(1)}x`       : '—'
+  if (key === 'cac')             return r.cac             != null ? fmt(r.cac)                               : '—'
+  if (key === 'cvr')             return r.cvr             != null ? `${r.cvr}%`                              : '—'
+  if (key === 'email_open_rate') return r.email_open_rate != null ? `${r.email_open_rate}%`                  : '—'
+  return '—'
+}
+
+function DashboardView({ dash, revenueData, onBack, onDelete }) {
+  const storageKey = `dash_pins_${dash.id}`
+  const [pinned, setPinned] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(storageKey) || '[]') } catch { return [] }
+  })
+
+  function togglePin(key) {
+    setPinned(prev => {
+      const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+      localStorage.setItem(storageKey, JSON.stringify(next))
+      return next
+    })
+  }
+
+  const pinnedMetrics   = AVAILABLE_METRICS.filter(m =>  pinned.includes(m.key))
+  const unpinnedMetrics = AVAILABLE_METRICS.filter(m => !pinned.includes(m.key))
+
+  const inputSt = { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-body)', outline: 'none', boxSizing: 'border-box' }
+
+  return (
+    <div className="page">
+      <div className="page-head">
+        <div>
+          <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-3)', fontSize: 13, padding: 0, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>← Back to dashboards</button>
+          <h1>{dash.name}</h1>
+          {dash.description && <div className="sub">{dash.description}</div>}
+        </div>
+        <div className="actions">
+          <button className="btn ghost" onClick={onDelete} style={{ color: 'var(--dn)' }}>Delete</button>
+        </div>
+      </div>
+
+      {pinnedMetrics.length === 0 && (
+        <div className="card" style={{ padding: '32px 24px', textAlign: 'center', color: 'var(--ink-3)' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>📌</div>
+          <div style={{ fontSize: 15, fontWeight: 500 }}>No metrics pinned yet</div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>Pin metrics from the section below to build your view.</div>
+        </div>
+      )}
+
+      {pinnedMetrics.length > 0 && (
+        <div className="grid-2" style={{ gap: 12 }}>
+          {pinnedMetrics.map(m => (
+            <div key={m.key} className="card" style={{ padding: '20px 24px', position: 'relative' }}>
+              <button onClick={() => togglePin(m.key)} style={{ position: 'absolute', top: 12, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-3)', fontSize: 18, lineHeight: 1 }}>×</button>
+              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', color: 'var(--ink-3)', textTransform: 'uppercase', marginBottom: 6 }}>{m.label}</div>
+              <div style={{ fontSize: 36, fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>{getMetricValue(m.key, revenueData)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="card">
+        <h3 style={{ marginBottom: 16 }}>Pin a metric</h3>
+        {unpinnedMetrics.length === 0 ? (
+          <div style={{ color: 'var(--ink-3)', fontSize: 13, textAlign: 'center', padding: '12px 0' }}>All metrics are pinned</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {unpinnedMetrics.map(m => (
+              <div key={m.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--surface-2)', borderRadius: 10 }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{m.label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>{getMetricValue(m.key, revenueData)}</div>
+                </div>
+                <button onClick={() => togglePin(m.key)} className="btn ghost sm" style={{ fontWeight: 700, fontSize: 18, lineHeight: 1, padding: '4px 10px' }}>+</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export function ScreenDashboards({ token, workspaceId, workspaceData, revenueData }) {
   const [dashboards, setDashboards] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -505,6 +601,7 @@ export function ScreenDashboards({ token, workspaceId }) {
   const [desc, setDesc] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [openDash, setOpenDash] = useState(null)
 
   useEffect(() => {
     if (!token || !workspaceId) { setLoading(false); return }
@@ -533,10 +630,30 @@ export function ScreenDashboards({ token, workspaceId }) {
       setShowModal(false)
       setName('')
       setDesc('')
-    } catch (e) {
+    } catch {
       setError('Failed to create dashboard')
     }
     setSaving(false)
+  }
+
+  async function deleteDashboard(dashId) {
+    await fetch(`https://sja.eikr.ee/api/workspace/${workspaceId}/dashboards/${dashId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` }
+    }).catch(() => {})
+    setDashboards(prev => prev.filter(d => d.id !== dashId))
+    setOpenDash(null)
+  }
+
+  if (openDash) {
+    return (
+      <DashboardView
+        dash={openDash}
+        revenueData={revenueData}
+        onBack={() => setOpenDash(null)}
+        onDelete={() => deleteDashboard(openDash.id)}
+      />
+    )
   }
 
   return (
@@ -564,11 +681,14 @@ export function ScreenDashboards({ token, workspaceId }) {
       {dashboards.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
           {dashboards.map(d => (
-            <div key={d.id} className="card" style={{ cursor: 'pointer' }}>
+            <div key={d.id} className="card" style={{ cursor: 'pointer' }} onClick={() => setOpenDash(d)}>
               <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{d.name}</div>
               {d.description && <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.5 }}>{d.description}</div>}
-              <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 12, fontFamily: 'var(--font-mono)' }}>
-                {new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+                <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
+                  {new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </div>
+                <button className="btn ghost sm" onClick={e => { e.stopPropagation(); setOpenDash(d) }}>Open →</button>
               </div>
             </div>
           ))}
@@ -587,23 +707,14 @@ export function ScreenDashboards({ token, workspaceId }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', display: 'block', marginBottom: 6 }}>NAME</label>
-                <input
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="e.g. Weekly performance"
-                  autoFocus
+                <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Weekly performance" autoFocus
                   style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-body)', outline: 'none', boxSizing: 'border-box' }}
-                  onKeyDown={e => e.key === 'Enter' && createDashboard()}
-                />
+                  onKeyDown={e => e.key === 'Enter' && createDashboard()}/>
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', display: 'block', marginBottom: 6 }}>DESCRIPTION <span style={{ fontWeight: 400, opacity: 0.6 }}>(optional)</span></label>
-                <input
-                  value={desc}
-                  onChange={e => setDesc(e.target.value)}
-                  placeholder="What is this dashboard for?"
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-body)', outline: 'none', boxSizing: 'border-box' }}
-                />
+                <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="What is this dashboard for?"
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-body)', outline: 'none', boxSizing: 'border-box' }}/>
               </div>
               {error && <div style={{ fontSize: 13, color: 'var(--dn)' }}>{error}</div>}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
@@ -619,6 +730,7 @@ export function ScreenDashboards({ token, workspaceId }) {
     </div>
   )
 }
+
 
 export function ScreenGoals({ workspaceData }) {
   const goals = workspaceData?.goals || []
