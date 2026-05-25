@@ -11,6 +11,7 @@ import { ScreenEmail } from './ScreenEmail'
 import { ScreenSocial } from './ScreenSocial'
 import { ScreenWebsite } from './ScreenWebsite'
 import { ScreenAlerts } from './ScreenAlerts'
+import ScreenHistory from './ScreenHistory'
 import { ScreenSKU } from './ScreenSKU'
 import { ScreenSubscriptions } from './ScreenSubscriptions'
 import AcceptInvite from './AcceptInvite'
@@ -264,10 +265,11 @@ function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token,
     case 'attribution': return <ScreenAttribution workspaceData={workspaceData} onNavigate={navigate}/>
     case 'sku': return <ScreenSKU token={token} workspaceId={workspace?.id} onNavigate={navigate}/>
     case 'connections': return <ScreenConnections token={token} workspaceId={workspace?.id} refreshWorkspace={refreshWorkspace}/>
-    case 'dashboards': return <ScreenDashboards/>
+    case 'dashboards': return <ScreenDashboards token={token} workspaceId={workspace?.id}/>
     case 'goals': return <ScreenGoals workspaceData={workspaceData}/>
     case 'alerts': return <ScreenAlerts workspaceData={workspaceData} token={token} workspaceId={workspace?.id}/>
     case 'subscriptions': return <ScreenSubscriptions token={token} workspaceId={workspace?.id}/>
+    case 'history': return <ScreenHistory workspaceData={workspaceData} token={token} workspaceId={workspace?.id}/>
     case 'email': return <ScreenEmail token={token} workspaceId={workspace?.id} onNavigate={navigate}/>
     case 'social': return <ScreenSocial token={token} workspaceId={workspace?.id}/>
     case 'website': return <ScreenWebsite token={token} workspaceId={workspace?.id} onNavigate={navigate}/>

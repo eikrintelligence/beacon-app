@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Icon } from './shared'
 
 function ClientView({ revenueData, workspaceData }) {
@@ -73,17 +73,14 @@ export function ScreenHome({ onNavigate, onAsk, revenueData, workspaceData, role
   if (role === 'client') return <ClientView revenueData={revenueData} workspaceData={workspaceData}/>
   const h = new Date().getHours()
   const greeting = h < 12 ? 'good morning' : h < 18 ? 'good afternoon' : 'good evening'
-  const [filter, setFilter] = useState('all')
   const [digestOpen, setDigestOpen] = useState(false)
-  const filtered = []
-  const filters = [['all','All'],['spike','Spikes'],['drop','Drops'],['goal','Goals'],['risk','Risks'],['opportunity','Opps']]
 
   // $500K pace tracker — use real data if available
   const goal = workspaceData?.goals?.find(g => g.type === 'revenue')
-  const goalTarget = goal?.target || 500000
-  const goalStart = goal?.start_date || '2026-04-01'
-  const goalEnd = goal?.end_date || '2026-12-31'
-  const brandName = workspaceData?.workspace?.name || 'Dog Treat Naturals'
+  const goalTarget = goal?.target || 0
+  const goalStart = goal?.start_date
+  const goalEnd = goal?.end_date
+  const brandName = workspaceData?.workspace?.name || 'Your workspace'
 
   const startDate = new Date(goalStart)
   const endDate = new Date(goalEnd)
@@ -110,8 +107,8 @@ export function ScreenHome({ onNavigate, onAsk, revenueData, workspaceData, role
     <div className="page">
       <div className="page-head">
         <div>
-          <h1>{greeting}, Denisse</h1>
-          <div className="sub">{brandName} · Week {weekNumber} of {totalWeeks} · <span style={{ color:'var(--accent)', fontWeight:600 }}>2 things need your attention</span></div>
+          <h1>{greeting}</h1>
+          <div className="sub">{brandName} · Week {weekNumber} of {totalWeeks}</div>
         </div>
         <div className="actions">
           <div className="range"><span className="dot"/> Last 7 days <Icon name="chev-down" size={12}/></div>
@@ -123,12 +120,12 @@ export function ScreenHome({ onNavigate, onAsk, revenueData, workspaceData, role
       <div className="card fade-in" style={{ background: 'var(--ink)', color: 'var(--bg)', borderColor: 'var(--ink)', padding: '24px 28px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 24, alignItems: 'start' }}>
           <div style={{ gridColumn: '1 / 3' }}>
-            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', opacity: 0.5, marginBottom: 8, fontFamily: 'var(--font-mono)' }}>$500K REVENUE GOAL · DEC 2026</div>
+            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', opacity: 0.5, marginBottom: 8, fontFamily: 'var(--font-mono)' }}>{goal?.label?.toUpperCase() || 'REVENUE GOAL'}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 6 }}>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 52, letterSpacing: '-0.03em', lineHeight: 1 }}>
                 ${Math.round(current / 1000)}k
               </div>
-              <div style={{ opacity: 0.5, fontSize: 20, fontFamily: 'var(--font-display)', fontWeight: 500 }}>/ $500k</div>
+              <div style={{ opacity: 0.5, fontSize: 20, fontFamily: 'var(--font-display)', fontWeight: 500 }}>/ ${Math.round(goalTarget/1000)}k</div>
               <div style={{ padding: '4px 10px', borderRadius: 999, background: statusColor, color: ahead ? 'white' : 'var(--ink)', fontSize: 12, fontWeight: 700, marginLeft: 4 }}>
                 {statusLabel}
               </div>

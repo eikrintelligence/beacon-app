@@ -497,23 +497,125 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
   )
 }
 
-export function ScreenDashboards() {
+export function ScreenDashboards({ token, workspaceId }) {
+  const [dashboards, setDashboards] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showModal, setShowModal] = useState(false)
+  const [name, setName] = useState('')
+  const [desc, setDesc] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!token || !workspaceId) { setLoading(false); return }
+    fetch(`https://sja.eikr.ee/api/workspace/${workspaceId}/dashboards`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setDashboards(d) })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [token, workspaceId])
+
+  async function createDashboard() {
+    if (!name.trim()) return
+    setSaving(true)
+    setError('')
+    try {
+      const r = await fetch(`https://sja.eikr.ee/api/workspace/${workspaceId}/dashboards`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), description: desc.trim() })
+      })
+      const d = await r.json()
+      if (d.error) { setError(d.error); setSaving(false); return }
+      setDashboards(prev => [d, ...prev])
+      setShowModal(false)
+      setName('')
+      setDesc('')
+    } catch (e) {
+      setError('Failed to create dashboard')
+    }
+    setSaving(false)
+  }
+
   return (
     <div className="page">
       <div className="page-head">
         <div><h1>Dashboards</h1><div className="sub">Pin insights and build custom views</div></div>
         <div className="actions">
-          <button className="btn primary"><Icon name="plus" size={14}/> New dashboard</button>
+          <button className="btn primary" onClick={() => setShowModal(true)}><Icon name="plus" size={14}/> New dashboard</button>
         </div>
       </div>
-      <div className="card" style={{ textAlign: 'center', padding: '64px 24px', maxWidth: 480, margin: '0 auto' }}>
-        <div style={{ fontSize: 52, marginBottom: 20 }}>&#128202;</div>
-        <h2 style={{ marginBottom: 10 }}>No dashboards yet</h2>
-        <div style={{ color: 'var(--ink-3)', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
-          Create custom dashboards by pinning insights, charts, and AI answers from across the app.
+
+      {loading && <div className="muted">Loading...</div>}
+
+      {!loading && dashboards.length === 0 && (
+        <div className="card" style={{ textAlign: 'center', padding: '64px 24px', maxWidth: 480, margin: '0 auto' }}>
+          <div style={{ fontSize: 52, marginBottom: 20 }}>&#128202;</div>
+          <h2 style={{ marginBottom: 10 }}>No dashboards yet</h2>
+          <div style={{ color: 'var(--ink-3)', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
+            Create custom dashboards by pinning insights, charts, and AI answers from across the app.
+          </div>
+          <button className="btn primary" onClick={() => setShowModal(true)}><Icon name="plus" size={14}/> Create first dashboard</button>
         </div>
-        <button className="btn primary"><Icon name="plus" size={14}/> Create first dashboard</button>
-      </div>
+      )}
+
+      {dashboards.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+          {dashboards.map(d => (
+            <div key={d.id} className="card" style={{ cursor: 'pointer' }}>
+              <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{d.name}</div>
+              {d.description && <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.5 }}>{d.description}</div>}
+              <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 12, fontFamily: 'var(--font-mono)' }}>
+                {new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+          onClick={() => setShowModal(false)}>
+          <div style={{ background: 'var(--surface)', borderRadius: 16, maxWidth: 480, width: '100%', padding: 28, boxShadow: '0 8px 40px rgba(0,0,0,0.2)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ margin: 0 }}>New dashboard</h3>
+              <button className="btn ghost sm" onClick={() => setShowModal(false)}>✕</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', display: 'block', marginBottom: 6 }}>NAME</label>
+                <input
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="e.g. Weekly performance"
+                  autoFocus
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-body)', outline: 'none', boxSizing: 'border-box' }}
+                  onKeyDown={e => e.key === 'Enter' && createDashboard()}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', display: 'block', marginBottom: 6 }}>DESCRIPTION <span style={{ fontWeight: 400, opacity: 0.6 }}>(optional)</span></label>
+                <input
+                  value={desc}
+                  onChange={e => setDesc(e.target.value)}
+                  placeholder="What is this dashboard for?"
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-body)', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+              {error && <div style={{ fontSize: 13, color: 'var(--dn)' }}>{error}</div>}
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+                <button className="btn ghost" onClick={() => setShowModal(false)}>Cancel</button>
+                <button className="btn primary" onClick={createDashboard} disabled={!name.trim() || saving}>
+                  {saving ? 'Creating...' : 'Create dashboard'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

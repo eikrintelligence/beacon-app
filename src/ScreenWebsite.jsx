@@ -83,7 +83,7 @@ export function ScreenWebsite({ token, workspaceId, onNavigate }) {
                 <h3 style={{ marginBottom: 16 }}>Traffic by source</h3>
                 <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
                   <div style={{ flexShrink: 0 }}>
-                    <Donut value={0.6} label={fmt(data.sessions)} size={120} color="var(--accent)"/>
+                    <Donut value={data.traffic_by_source[0] ? data.traffic_by_source[0].sessions / totalSessions : 0.5} label={fmt(data.sessions)} size={120} color="var(--accent)"/>
                   </div>
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {data.traffic_by_source.map((row, i) => {

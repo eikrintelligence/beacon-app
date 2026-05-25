@@ -47,7 +47,7 @@ export default function PublicView({ token }) {
       })
       .catch(() => setError('Could not load data'))
       .finally(() => setLoading(false))
-  }, [shareToken])
+  }, [token])
 
   const fmt = n => n >= 1000000
     ? `$${(n / 1000000).toFixed(2)}M`
