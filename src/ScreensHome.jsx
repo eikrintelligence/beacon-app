@@ -243,118 +243,265 @@ const SUGGESTIONS = [
   'What should I focus on this week?',
 ]
 
+const BASE_API = 'https://sja.eikr.ee/api'
+
 export function ScreenAsk({ token, workspaceId }) {
-  const [input, setInput] = useState('')
-  const [threads, setThreads] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [history, setHistory] = useState([])
-  const inputRef = useRef(null)
+  const [input, setInput]                     = useState('')
+  const [threads, setThreads]                 = useState([])
+  const [history, setHistory]                 = useState([])
+  const [loading, setLoading]                 = useState(false)
+  const [savedThreads, setSavedThreads]       = useState([])
+  const [loadingThreads, setLoadingThreads]   = useState(false)
+  const [currentThreadId, setCurrentThreadId] = useState(null)
+  const [showThreads, setShowThreads]         = useState(false)
+  const inputRef  = useRef(null)
+  const bottomRef = useRef(null)
 
-  React.useEffect(() => { inputRef.current?.focus() }, [])
+  useEffect(() => {
+    inputRef.current?.focus()
+    if (!token || !workspaceId) return
+    setLoadingThreads(true)
+    fetch(`${BASE_API}/threads?workspace_id=${workspaceId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(d => setSavedThreads(Array.isArray(d) ? d : []))
+      .catch(() => {})
+      .finally(() => setLoadingThreads(false))
+  }, [token, workspaceId])
 
-  async function submit(q) {
-    const question = q || input.trim()
-    if (!question) return
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [threads])
+
+  function startNewThread() {
+    setThreads([])
+    setHistory([])
+    setCurrentThreadId(null)
+    setShowThreads(false)
     setInput('')
+    setTimeout(() => inputRef.current?.focus(), 50)
+  }
+
+  async function loadThread(th) {
+    setShowThreads(false)
     setLoading(true)
     try {
+      const msgs = await fetch(`${BASE_API}/threads/${th.id}/messages`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(r => r.json())
+      const pairs = []
+      for (let i = 0; i < msgs.length; i++) {
+        if (msgs[i].role === 'user') {
+          const nxt = msgs[i + 1]
+          pairs.push({ q: msgs[i].content, a: nxt?.role === 'assistant' ? nxt.content : '' })
+          if (nxt?.role === 'assistant') i++
+        }
+      }
+      setThreads(pairs)
+      setHistory(msgs.map(m => ({ role: m.role, content: m.content })))
+      setCurrentThreadId(th.id)
+    } catch {}
+    setLoading(false)
+  }
+
+  async function saveMsg(threadId, role, content) {
+    if (!threadId || !token) return
+    try {
+      await fetch(`${BASE_API}/threads/${threadId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ role, content, workspace_id: workspaceId })
+      })
+    } catch {}
+  }
+
+  async function submit(q) {
+    const question = (q || input).trim()
+    if (!question || loading) return
+    setInput('')
+    setLoading(true)
+
+    // Create Supabase thread on first message in a new conversation
+    let threadId = currentThreadId
+    if (!threadId && token && workspaceId) {
+      try {
+        const th = await fetch(`${BASE_API}/threads`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ workspace_id: workspaceId, title: question.slice(0, 80) })
+        }).then(r => r.json())
+        if (th.id) {
+          threadId = th.id
+          setCurrentThreadId(th.id)
+          setSavedThreads(prev => [th, ...prev.slice(0, 9)])
+        }
+      } catch {}
+    }
+
+    await saveMsg(threadId, 'user', question)
+
+    const updatedHistory = [...history, { role: 'user', content: question }]
+    setHistory(updatedHistory)
+    setThreads(prev => [...prev, { q: question, a: null }])
+
+    try {
       const { askAI } = await import('./api')
-      const result = await askAI(token, workspaceId, question, history)
-      const newThread = { q: question, a: result.answer }
-      setThreads(prev => [...prev, newThread])
-      setHistory(prev => [
-        ...prev,
-        { role: 'user', content: question },
-        { role: 'assistant', content: result.answer }
-      ])
-    } catch (err) {
-      setThreads(prev => [...prev, { q: question, a: 'Sorry — could not reach Faro backend. Check your connection.' }])
+      const result = await askAI(token, workspaceId, question, updatedHistory.slice(-12))
+      const answer = result.answer
+      await saveMsg(threadId, 'assistant', answer)
+      setHistory(prev => [...prev, { role: 'assistant', content: answer }])
+      setThreads(prev => {
+        const next = [...prev]
+        next[next.length - 1] = { q: question, a: answer }
+        return next
+      })
+    } catch {
+      setThreads(prev => {
+        const next = [...prev]
+        next[next.length - 1] = { q: question, a: 'Sorry — could not reach Faro backend. Check your connection.' }
+        return next
+      })
     }
     setLoading(false)
   }
 
   return (
-    <div className="page" style={{ gap:16 }}>
-      <div className="page-head">
-        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-          <div style={{ width:36, height:36, background:'var(--accent)', borderRadius:10, display:'grid', placeItems:'center' }}>
-            <Icon name="sparkles" size={18} strokeWidth={1.8}/>
-          </div>
-          <div>
-            <h1 style={{ fontSize:28 }}>Ask Faro</h1>
-            <div className="sub">Plain-English questions across all your data. Pin answers to a dashboard.</div>
-          </div>
-        </div>
-        <div className="actions">
-          <button className="btn"><Icon name="list" size={14}/> Threads ({threads.length})</button>
-          <button className="btn primary" onClick={() => { setThreads([]); setInput('') }}><Icon name="plus" size={14}/> New</button>
-        </div>
-      </div>
-
-      {threads.length === 0 && (
-        <div className="fade-in">
-          <div className="tag" style={{ marginBottom:12 }}>TRY ASKING</div>
-          <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-            {SUGGESTIONS.map(s => (
-              <button key={s} className="btn" style={{ fontSize:13 }} onClick={() => submit(s)}>
-                {s}
+    <>
+      {/* Threads sidebar */}
+      {showThreads && (
+        <div style={{ position:'fixed', inset:0, zIndex:90, background:'rgba(0,0,0,0.3)' }} onClick={() => setShowThreads(false)}>
+          <div style={{ position:'absolute', top:0, right:0, bottom:0, width:300, background:'var(--surface)', borderLeft:'1px solid var(--border)', boxShadow:'-8px 0 32px rgba(0,0,0,0.15)', display:'flex', flexDirection:'column' }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding:'20px 20px 16px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <h3 style={{ margin:0, fontSize:16 }}>Conversations</h3>
+              <button className="btn sm ghost" onClick={() => setShowThreads(false)}>✕</button>
+            </div>
+            <div style={{ flex:1, overflowY:'auto', padding:'8px 12px' }}>
+              {threads.length > 0 && (
+                <>
+                  <div style={{ fontSize:10, fontWeight:600, color:'var(--ink-4)', letterSpacing:'0.07em', textTransform:'uppercase', padding:'8px 8px 4px' }}>THIS SESSION</div>
+                  <button style={{ width:'100%', textAlign:'left', padding:'10px 12px', borderRadius:8, border:'none', background:currentThreadId ? 'transparent' : 'color-mix(in oklab,var(--accent) 10%,var(--surface))', cursor:'pointer', fontSize:13, color:'var(--ink)', display:'block', marginBottom:4 }} onClick={() => setShowThreads(false)}>
+                    <div style={{ fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{threads[0]?.q?.slice(0, 50) || 'Current conversation'}</div>
+                    <div style={{ fontSize:11, color:'var(--ink-3)', marginTop:2 }}>{threads.length} exchange{threads.length !== 1 ? 's' : ''} this session</div>
+                  </button>
+                </>
+              )}
+              {savedThreads.length > 0 && (
+                <>
+                  <div style={{ fontSize:10, fontWeight:600, color:'var(--ink-4)', letterSpacing:'0.07em', textTransform:'uppercase', padding:'12px 8px 4px' }}>SAVED</div>
+                  {savedThreads.map(th => (
+                    <button key={th.id} style={{ width:'100%', textAlign:'left', padding:'10px 12px', borderRadius:8, border:'none', background:th.id === currentThreadId ? 'color-mix(in oklab,var(--accent) 10%,var(--surface))' : 'transparent', cursor:'pointer', fontSize:13, color:'var(--ink)', display:'block', marginBottom:2 }} onClick={() => loadThread(th)}>
+                      <div style={{ fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{th.title}</div>
+                      <div style={{ fontSize:11, color:'var(--ink-3)', marginTop:2 }}>{new Date(th.updated_at).toLocaleDateString()}</div>
+                    </button>
+                  ))}
+                </>
+              )}
+              {!threads.length && !savedThreads.length && (
+                <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--ink-3)', fontSize:13 }}>
+                  {loadingThreads ? 'Loading...' : 'No conversations yet. Start by asking a question!'}
+                </div>
+              )}
+            </div>
+            <div style={{ padding:'12px', borderTop:'1px solid var(--border)' }}>
+              <button className="btn primary" style={{ width:'100%', justifyContent:'center' }} onClick={startNewThread}>
+                <Icon name="plus" size={14}/> New conversation
               </button>
-            ))}
+            </div>
           </div>
         </div>
       )}
 
-      <div className="ask-thread">
-        {threads.map((t, i) => (
-          <div key={i} className="fade-in" style={{ display:'flex', flexDirection:'column', gap:10 }}>
-            <div className="ask-bubble user">
-              <div style={{ fontWeight:500 }}>{t.q}</div>
+      <div className="page" style={{ gap:16 }}>
+        <div className="page-head">
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ width:36, height:36, background:'var(--accent)', borderRadius:10, display:'grid', placeItems:'center' }}>
+              <Icon name="sparkles" size={18} strokeWidth={1.8}/>
             </div>
-            <div className="ask-bubble">
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
-                <div style={{ width:22, height:22, background:'var(--accent)', borderRadius:6, display:'grid', placeItems:'center', flexShrink:0 }}>
-                  <Icon name="sparkles" size={12}/>
-                </div>
-                <span className="tag">FARO</span>
-              </div>
-              <div style={{ fontSize:14.5, lineHeight:1.7, color:'var(--ink-2)' }}
-                dangerouslySetInnerHTML={{ __html: t.a.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }}
-              />
-              <div className="row between" style={{ marginTop:14, paddingTop:12, borderTop:'1px solid var(--border)' }}>
-                <div className="row tight">
-                  <button className="btn sm ghost"><Icon name="share" size={12}/></button>
-                </div>
-                <div className="row tight">
-                  <button className="btn sm ghost">👍</button>
-                  <button className="btn sm ghost">👎</button>
-                </div>
-              </div>
+            <div>
+              <h1 style={{ fontSize:28 }}>Ask Faro</h1>
+              <div className="sub">Plain-English questions across all your data.</div>
             </div>
           </div>
-        ))}
-        {loading && (
-          <div className="ask-bubble fade-in">
-            <div style={{ display:'flex', gap:6, alignItems:'center', color:'var(--ink-3)' }}>
-              <Icon name="sparkles" size={14}/> Thinking…
+          <div className="actions">
+            <button className="btn" onClick={() => setShowThreads(v => !v)}>
+              <Icon name="list" size={14}/> Threads{savedThreads.length > 0 ? ` (${savedThreads.length})` : ''}
+            </button>
+            <button className="btn primary" onClick={startNewThread}>
+              <Icon name="plus" size={14}/> New
+            </button>
+          </div>
+        </div>
+
+        {threads.length === 0 && (
+          <div className="fade-in">
+            <div className="tag" style={{ marginBottom:12 }}>TRY ASKING</div>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+              {SUGGESTIONS.map(s => (
+                <button key={s} className="btn" style={{ fontSize:13 }} onClick={() => submit(s)}>
+                  {s}
+                </button>
+              ))}
             </div>
           </div>
         )}
-      </div>
 
-      <div style={{ marginTop:'auto' }}>
-        <div className="ask-input-bar">
-          <span style={{ color:'var(--accent)' }}><Icon name="sparkles" size={16}/></span>
-          <input ref={inputRef} placeholder="are we on pace for $500K? · which product is selling best? · how is TAILWAG10 performing?"
-            value={input} onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key==='Enter' && submit()}/>
-          <button className="btn sm primary" onClick={() => submit()} disabled={!input.trim()}>
-            <Icon name="send" size={13}/> Ask
-          </button>
+        <div className="ask-thread">
+          {threads.map((t, i) => (
+            <div key={i} className="fade-in" style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              <div className="ask-bubble user">
+                <div style={{ fontWeight:500 }}>{t.q}</div>
+              </div>
+              {t.a === null ? (
+                <div className="ask-bubble fade-in">
+                  <div style={{ display:'flex', gap:6, alignItems:'center', color:'var(--ink-3)' }}>
+                    <Icon name="sparkles" size={14}/> Thinking…
+                  </div>
+                </div>
+              ) : (
+                <div className="ask-bubble">
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                    <div style={{ width:22, height:22, background:'var(--accent)', borderRadius:6, display:'grid', placeItems:'center', flexShrink:0 }}>
+                      <Icon name="sparkles" size={12}/>
+                    </div>
+                    <span className="tag">FARO</span>
+                  </div>
+                  <div style={{ fontSize:14.5, lineHeight:1.7, color:'var(--ink-2)' }}
+                    dangerouslySetInnerHTML={{ __html: t.a.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }}
+                  />
+                  <div className="row between" style={{ marginTop:14, paddingTop:12, borderTop:'1px solid var(--border)' }}>
+                    <button className="btn sm ghost"><Icon name="share" size={12}/></button>
+                    <div className="row tight">
+                      <button className="btn sm ghost">👍</button>
+                      <button className="btn sm ghost">👎</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+          <div ref={bottomRef}/>
         </div>
-        <div style={{ textAlign:'center', marginTop:6, fontSize:11, color:'var(--ink-4)' }}>
-          / to focus · ↵ to send · <span style={{ color:'var(--accent)' }}>Faro can be wrong</span> — verify big decisions
+
+        <div style={{ marginTop:'auto' }}>
+          <div className="ask-input-bar">
+            <span style={{ color:'var(--accent)' }}><Icon name="sparkles" size={16}/></span>
+            <input
+              ref={inputRef}
+              placeholder="are we on pace for $500K? · which product is selling best? · how is TAILWAG10 performing?"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && submit()}
+            />
+            <button className="btn sm primary" onClick={() => submit()} disabled={!input.trim() || loading}>
+              <Icon name="send" size={13}/> Ask
+            </button>
+          </div>
+          <div style={{ textAlign:'center', marginTop:6, fontSize:11, color:'var(--ink-4)' }}>
+            / to focus · ↵ to send · <span style={{ color:'var(--accent)' }}>Faro can be wrong</span> — verify big decisions
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
