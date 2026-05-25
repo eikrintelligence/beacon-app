@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { FUNNEL, CHANNELS, shapeSeries, fmt, pctChange, Icon, SrcIcon, Sparkline, LineChart, BarChart, Donut, StackBar } from './shared'
+import { fmt, Icon, SrcIcon, Sparkline, Donut, StackBar } from './shared'
 
 export function ScreenFunnel({ shape, workspaceData, onNavigate }) {
   const [selectedIdx, setSelectedIdx] = useState(3)
@@ -19,32 +19,28 @@ export function ScreenFunnel({ shape, workspaceData, onNavigate }) {
     setSyncing(false)
   }
 
-  const stages = useMemo(() => FUNNEL.map((s, i) => {
-    const prev = FUNNEL[i-1]
-    const passCurr = prev ? (s.v / prev.v) * 100 : 100
-    const passPrev = prev ? (s.prev / prev.prev) * 100 : 100
-    return { ...s, passCurr, passPrev, delta: passCurr - passPrev }
-  }), [])
+  const stages = useMemo(() => {
+    const raw = funnelData?.stages || []
+    return raw.map((s, i) => {
+      const prev = raw[i-1]
+      const passCurr = prev ? (s.v / prev.v) * 100 : 100
+      const passPrev = prev && s.prev != null && prev.prev != null ? (s.prev / prev.prev) * 100 : passCurr
+      return { ...s, passCurr, passPrev, delta: passCurr - passPrev }
+    })
+  }, [funnelData])
 
   const projection = useMemo(() => {
-    if (!whatIf) return null
+    if (!whatIf || !stages.length) return null
     const newV = stages.map(s => s.v)
     for (let i = whatIf.idx; i < stages.length; i++) {
       if (i === 0) continue
-      const pass = FUNNEL[i].v / FUNNEL[i-1].v
+      const pass = stages[i].v / stages[i-1].v
       const newPass = i === whatIf.idx ? pass * whatIf.multiplier : pass
       newV[i] = Math.round(newV[i-1] * newPass)
     }
     return newV
   }, [whatIf, stages])
 
-  const channelMix = [
-    { id:'tt', label:'TikTok', v:38, color:'#fe2c55' },
-    { id:'ma', label:'Meta', v:27, color:'#1877f2' },
-    { id:'gads', label:'Google Ads', v:18, color:'#4285f4' },
-    { id:'org', label:'Organic', v:11, color:'var(--accent-2)' },
-    { id:'em', label:'Email', v:6, color:'var(--accent-3)' },
-  ]
 
   const hasShopify = workspaceData?.connections?.some(c => c.platform === 'shopify' && c.status === 'active')
   if (!hasShopify) return (
@@ -61,6 +57,34 @@ export function ScreenFunnel({ shape, workspaceData, onNavigate }) {
         </div>
         <button className="btn primary" onClick={() => onNavigate && onNavigate('connections')}>
           Connect Shopify →
+        </button>
+      </div>
+    </div>
+  )
+
+  if (!funnelData || !stages.length) return (
+    <div className="page">
+      <div className="page-head">
+        <div><h1>The funnel</h1><div className="sub">Follow a customer from impression to order</div></div>
+        <div className="actions">
+          <div style={{ display: 'flex', gap: 4 }}>
+            {[7, 30, 90].map(d => (
+              <button key={d} className={'btn sm' + (days === d ? ' primary' : '')} onClick={() => setDays(d)}>Last {d}d</button>
+            ))}
+          </div>
+          <button className="btn sm" onClick={syncFunnel} disabled={syncing}>
+            {syncing ? 'Syncing…' : 'Sync funnel data'}
+          </button>
+        </div>
+      </div>
+      <div className="card" style={{ textAlign: 'center', padding: '64px 24px', maxWidth: 480, margin: '0 auto' }}>
+        <div style={{ fontSize: 52, marginBottom: 20 }}>&#128202;</div>
+        <h2 style={{ marginBottom: 10 }}>Sync your funnel data</h2>
+        <div style={{ color: 'var(--ink-3)', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
+          Pull live conversion data from your Shopify store to see your customer journey, drop-off rates, and what-if simulations.
+        </div>
+        <button className="btn primary" onClick={syncFunnel} disabled={syncing}>
+          {syncing ? 'Syncing…' : 'Sync funnel data'}
         </button>
       </div>
     </div>
@@ -89,19 +113,19 @@ export function ScreenFunnel({ shape, workspaceData, onNavigate }) {
 
       <div style={{ display:'grid', gridTemplateColumns:'minmax(0,1fr) 300px', gap:16 }}>
         <div className="stack">
-          <div className="card row between" style={{ alignItems:'center', gap:16 }}>
-            <div>
+          {stages.length > 1 && (
+            <div className="card" style={{ padding: '20px 24px' }}>
               <div className="tag">END-TO-END CONVERSION</div>
               <div className="row tight" style={{ alignItems:'baseline', marginTop:4 }}>
-                <div className="num" style={{ fontSize:44 }}>3.8%</div>
-                <span className="chip up" style={{ marginLeft:4 }}><Icon name="arrow-up" size={11}/> +0.4pp WoW</span>
+                <div className="num" style={{ fontSize:44 }}>
+                  {((stages[stages.length-1].v / stages[0].v) * 100).toFixed(1)}%
+                </div>
               </div>
-              <div className="muted" style={{ fontSize:13, marginTop:2 }}>1,284 orders from 184k sessions · best in 9 weeks</div>
+              <div className="muted" style={{ fontSize:13, marginTop:2 }}>
+                {fmt(stages[stages.length-1].v,'compact')} {stages[stages.length-1].name.toLowerCase()} from {fmt(stages[0].v,'compact')} {stages[0].name.toLowerCase()}
+              </div>
             </div>
-            <div style={{ flex:'0 0 180px', height:80 }}>
-              <Sparkline data={shapeSeries(3, 14, 'growth', 7)} height={80}/>
-            </div>
-          </div>
+          )}
 
           <div className="card">
             <div className="row between" style={{ marginBottom:18 }}>
@@ -145,30 +169,6 @@ export function ScreenFunnel({ shape, workspaceData, onNavigate }) {
               })}
             </div>
           </div>
-
-          <div className="card">
-            <div className="row between" style={{ marginBottom:14 }}>
-              <div>
-                <div className="tag">STAGE BREAKDOWN</div>
-                <h3 style={{ marginTop:4 }}>{stages[selectedIdx].name} · by source</h3>
-              </div>
-            </div>
-            <div className="stack" style={{ gap:10 }}>
-              {channelMix.map(c => {
-                const v = Math.round(stages[selectedIdx].v * (c.v/100))
-                return (
-                  <div key={c.id} className="row tight" style={{ alignItems:'center', gap:12 }}>
-                    <div style={{ width:90, fontSize:13 }}>{c.label}</div>
-                    <div style={{ flex:1, height:22, background:'var(--surface-2)', borderRadius:6, overflow:'hidden' }}>
-                      <div style={{ width:c.v+'%', height:'100%', background:c.color, transition:'width .4s' }}/>
-                    </div>
-                    <div className="num" style={{ width:70, textAlign:'right', fontSize:14 }}>{fmt(v,'compact')}</div>
-                    <div className="mono muted" style={{ width:36, textAlign:'right', fontSize:11 }}>{c.v}%</div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
         </div>
 
         <div className="stack">
@@ -187,26 +187,10 @@ export function ScreenFunnel({ shape, workspaceData, onNavigate }) {
             {projection && (
               <div style={{ marginTop:14, padding:12, background:'var(--surface)', borderRadius:8 }}>
                 <div className="tag" style={{ marginBottom:6 }}>PROJECTED IMPACT</div>
-                <div className="num" style={{ fontSize:28 }}>+{fmt(projection[5]-stages[5].v,'compact')}</div>
+                <div className="num" style={{ fontSize:28 }}>+{fmt(projection[projection.length-1]-stages[stages.length-1].v,'compact')}</div>
                 <div className="muted" style={{ fontSize:12 }}>additional orders/week</div>
               </div>
             )}
-          </div>
-
-          <div className="card">
-            <div className="tag" style={{ marginBottom:10 }}>STAGE INSIGHTS</div>
-            <div className="stack" style={{ gap:8 }}>
-              {[
-                { label:'Best stage', value:'Impressions → Sessions', color:'var(--up)' },
-                { label:'Leakiest stage', value:'Checkout (−0.8pp)', color:'var(--dn)' },
-                { label:'Biggest WoW gain', value:'Add to cart +1.2pp', color:'var(--accent)' },
-              ].map(ins => (
-                <div key={ins.label} style={{ padding:'10px 12px', background:'var(--surface-2)', borderRadius:8 }}>
-                  <div className="tag" style={{ marginBottom:3 }}>{ins.label}</div>
-                  <div style={{ fontWeight:600, fontSize:13.5, color:ins.color }}>{ins.value}</div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </div>
@@ -497,51 +481,27 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
           )
         })}
       </div>
+      )}
     </div>
   )
 }
 
-export function ScreenDashboards({ shape }) {
-  const boards = [
-    { id:'exec', title:'Executive summary', desc:'Revenue, ROAS, CAC, orders at a glance', pins:6, updated:'2 hr ago' },
-    { id:'tiktok', title:'TikTok deep-dive', desc:'Views, CTR, CAC, viral content tracker', pins:8, updated:'9 min ago' },
-    { id:'paid', title:'Paid media overview', desc:'All channels · spend, ROAS, CAC comparison', pins:10, updated:'1 hr ago' },
-    { id:'weekly', title:'Weekly digest', desc:'Auto-generated Monday morning brief', pins:5, updated:'Mon 9am' },
-  ]
+export function ScreenDashboards() {
   return (
     <div className="page">
       <div className="page-head">
-        <div>
-          <h1>Dashboards</h1>
-          <div className="sub">{boards.length} boards · shared with team</div>
-        </div>
+        <div><h1>Dashboards</h1><div className="sub">Pin insights and build custom views</div></div>
         <div className="actions">
           <button className="btn primary"><Icon name="plus" size={14}/> New dashboard</button>
         </div>
       </div>
-      <div className="grid-2">
-        {boards.map((b, i) => (
-          <div key={b.id} className="card" style={{ cursor:'pointer', transition:'box-shadow .15s' }}
-            onMouseEnter={e => e.currentTarget.style.boxShadow='var(--shadow-md)'}
-            onMouseLeave={e => e.currentTarget.style.boxShadow=''}>
-            <div className="row between" style={{ marginBottom:12 }}>
-              <div>
-                <div className="tag" style={{ marginBottom:4 }}>DASHBOARD · {b.pins} PINS</div>
-                <h3>{b.title}</h3>
-              </div>
-              <button className="btn sm ghost"><Icon name="dots" size={14}/></button>
-            </div>
-            <div className="muted" style={{ fontSize:13, marginBottom:14 }}>{b.desc}</div>
-            <div style={{ height:60, overflow:'hidden', width:'100%', marginBottom:12 }}>
-              <Sparkline data={shapeSeries(50+i*10, 14, shape, i*7)} height={60}
-                color={['var(--accent)','var(--accent-2)','var(--accent-4)','var(--accent-3)'][i]}/>
-            </div>
-            <div className="row between" style={{ alignItems:'center' }}>
-              <span className="muted" style={{ fontSize:11.5 }}>Updated {b.updated}</span>
-              <button className="btn sm">Open <Icon name="arrow-right" size={12}/></button>
-            </div>
-          </div>
-        ))}
+      <div className="card" style={{ textAlign: 'center', padding: '64px 24px', maxWidth: 480, margin: '0 auto' }}>
+        <div style={{ fontSize: 52, marginBottom: 20 }}>&#128202;</div>
+        <h2 style={{ marginBottom: 10 }}>No dashboards yet</h2>
+        <div style={{ color: 'var(--ink-3)', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
+          Create custom dashboards by pinning insights, charts, and AI answers from across the app.
+        </div>
+        <button className="btn primary"><Icon name="plus" size={14}/> Create first dashboard</button>
       </div>
     </div>
   )
@@ -549,13 +509,7 @@ export function ScreenDashboards({ shape }) {
 
 export function ScreenGoals({ workspaceData }) {
   const goals = workspaceData?.goals || []
-  const defaultGoals = [
-    { id: 'demo1', label: 'Weekly revenue', type: 'revenue', current: 84200, target: 100000, end_date: new Date(Date.now() + 2*24*60*60*1000).toISOString(), unit: 'money' },
-    { id: 'demo2', label: 'Monthly orders', type: 'orders', current: 4128, target: 5000, end_date: new Date(Date.now() + 9*24*60*60*1000).toISOString(), unit: 'int' },
-    { id: 'demo3', label: 'Blended ROAS', type: 'roas', current: 3.4, target: 4.0, end_date: new Date(Date.now() + 14*24*60*60*1000).toISOString(), unit: 'x' },
-    { id: 'demo4', label: 'New customers', type: 'customers', current: 412, target: 600, end_date: new Date(Date.now() + 14*24*60*60*1000).toISOString(), unit: 'int' },
-  ]
-  const displayGoals = goals.length > 0 ? goals : defaultGoals
+  const displayGoals = goals
 
   function fmtVal(v, unit) {
     if (unit === 'money') return v >= 1000 ? '$' + (v/1000).toFixed(1) + 'k' : '$' + Math.round(v)
@@ -627,6 +581,16 @@ export function ScreenGoals({ workspaceData }) {
         </div>
       )}
 
+      {displayGoals.length === 0 ? (
+        <div className="card" style={{ textAlign: 'center', padding: '48px 24px', maxWidth: 480, margin: '0 auto' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>&#127919;</div>
+          <h3 style={{ marginBottom: 8 }}>No goals yet</h3>
+          <p style={{ color: 'var(--ink-3)', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
+            Set revenue, orders, or ROAS goals to track your progress and get on-track alerts.
+          </p>
+          <button className="btn primary"><Icon name="plus" size={14}/> Add first goal</button>
+        </div>
+      ) : (
       <div className="grid-2">
         {displayGoals.map(g => {
           const pct = Math.min(100, Math.round((g.current / g.target) * 100))
@@ -654,6 +618,7 @@ export function ScreenGoals({ workspaceData }) {
           )
         })}
       </div>
+      )}
     </div>
   )
 }

@@ -3,17 +3,6 @@ import { useAuth } from './AuthContext'
 
 const API = import.meta.env.VITE_API_URL || 'https://sja.eikr.ee/api'
 
-function genDemo() {
-  const now = new Date()
-  const shopify = []
-  for (let i = 89; i >= 0; i--) {
-    const d = new Date(now)
-    d.setDate(d.getDate() - i)
-    const rev = Math.round(7800 + Math.sin(i / 10) * 2200 + Math.random() * 1400)
-    shopify.push({ date: d.toISOString().split('T')[0], revenue: rev, orders: Math.round(rev / 185) })
-  }
-  return { shopify }
-}
 
 function LineChart({ data, yKey = 'revenue', color = '#6366f1', h = 128 }) {
   if (!data || data.length < 2) return (
@@ -85,7 +74,7 @@ export default function ScreenHistory({ workspaceId }) {
   const { token } = useAuth()
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [demo, setDemo] = useState(false)
+  const [empty, setEmpty] = useState(false)
   const [range, setRange] = useState('90')
   const [tab, setTab] = useState('shopify')
 
@@ -97,10 +86,10 @@ export default function ScreenHistory({ workspaceId }) {
     })
       .then(r => r.json())
       .then(d => {
-        if (!d || d.error || !Object.keys(d).length) { setSummary(genDemo()); setDemo(true) }
-        else { setSummary(d); setDemo(false); if (!d[tab]) setTab(Object.keys(d)[0]) }
+        if (!d || d.error || !Object.keys(d).length) { setSummary(null); setEmpty(true) }
+        else { setSummary(d); setEmpty(false); if (!d[tab]) setTab(Object.keys(d)[0]) }
       })
-      .catch(() => { setSummary(genDemo()); setDemo(true) })
+      .catch(() => { setSummary(null); setEmpty(true) })
       .finally(() => setLoading(false))
   }, [workspaceId, range, token])
 
@@ -129,18 +118,22 @@ export default function ScreenHistory({ workspaceId }) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <h2 style={{ margin: 0, fontWeight: 700, fontSize: 22, color: '#111' }}>History</h2>
-          {demo && (
-            <span style={{ fontSize: 11, color: '#92400e', background: '#fef3c7', borderRadius: 4, padding: '2px 8px', fontWeight: 500 }}>
-              demo data — connect sources to build history
-            </span>
-          )}
+
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           {['30', '90', '180'].map(d => PILL(range === d, () => setRange(d), `${d}d`))}
         </div>
       </div>
 
-      {/* KPI Row */}
+      {empty && (
+        <div style={{ textAlign: 'center', padding: '64px 24px', background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>&#128202;</div>
+          <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 8 }}>No history yet</div>
+          <div style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>Connect Shopify to start building your revenue history. Data accumulates automatically once connected.</div>
+        </div>
+      )}
+
+      {!empty && (<>{/* KPI Row */}<
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>
         {[
           { label: 'Total Revenue', value: fmtMoney(totalRev) },

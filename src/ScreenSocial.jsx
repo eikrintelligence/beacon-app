@@ -7,14 +7,9 @@ const PLATFORMS = [
   { id: 'facebook',  name: 'Facebook',  color: '#1877f2', icon: 'FB' },
 ]
 
-const DEMO_METRICS = {
-  instagram: { followers: 14200, growth: 380, engagement_rate: 3.8, posts_this_week: 5 },
-  tiktok:    { followers: 28900, growth: 1240, engagement_rate: 6.2, posts_this_week: 8 },
-  facebook:  { followers: 6800,  growth: 120,  engagement_rate: 1.4, posts_this_week: 3 },
-}
 
 export function ScreenSocial({ token, workspaceId }) {
-  const [metrics, setMetrics] = useState(DEMO_METRICS)
+  const [metrics, setMetrics] = useState({})
   const [editing, setEditing] = useState(null)
   const [draft, setDraft] = useState({})
   const [saved, setSaved] = useState(false)
@@ -33,13 +28,14 @@ export function ScreenSocial({ token, workspaceId }) {
 
   const totalFollowers = Object.values(metrics).reduce((s, m) => s + (m.followers || 0), 0)
   const totalGrowth = Object.values(metrics).reduce((s, m) => s + (m.growth || 0), 0)
+  const hasData = totalFollowers > 0
 
   return (
     <div className="page">
       <div className="page-head">
         <div>
           <h1>Social media</h1>
-          <div className="sub">{totalFollowers.toLocaleString()} total followers · {totalGrowth > 0 ? `+${totalGrowth.toLocaleString()} this week` : 'manual data'}</div>
+          <div className="sub">{hasData ? `${totalFollowers.toLocaleString()} total followers` : 'Enter your social metrics below'}</div>
         </div>
         {saved && <div style={{ padding: '8px 16px', borderRadius: 10, background: 'color-mix(in oklab, var(--up) 12%, var(--surface))', color: 'var(--up)', fontSize: 13, fontWeight: 600 }}>✓ Saved</div>}
       </div>
@@ -111,8 +107,8 @@ export function ScreenSocial({ token, workspaceId }) {
       <div className="card">
         <h3 style={{ marginBottom: 4 }}>About this dashboard</h3>
         <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6 }}>
-          Social data is entered manually each week by MLDTS. Click <strong>Update</strong> on any platform card to enter the latest numbers.
-          TikTok API access is pending approval — this view will auto-populate once connected.
+          Enter your social metrics manually each week. Click <strong>Update</strong> on any platform card to enter the latest numbers.
+          API integrations for Instagram, TikTok and Facebook are coming soon.
         </div>
       </div>
     </div>

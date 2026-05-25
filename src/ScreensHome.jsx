@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react'
-import { PERSONAS, FEED, TAG_STYLES, shapeSeries, fmt, fmtChange, pctChange, Icon, SrcIcon, Sparkline, LineChart, KPI } from './shared'
+import { Icon } from './shared'
 
 function ClientView({ revenueData, workspaceData }) {
   const goal = workspaceData?.goals?.find(g => g.type === 'revenue')
@@ -69,9 +69,8 @@ function DigestModal({ token, workspaceId, onClose }) {
   )
 }
 
-export function ScreenHome({ persona, shape, onNavigate, onAsk, revenueData, workspaceData, role, token, workspaceId }) {
+export function ScreenHome({ onNavigate, onAsk, revenueData, workspaceData, role, token, workspaceId }) {
   if (role === 'client') return <ClientView revenueData={revenueData} workspaceData={workspaceData}/>
-  const p = PERSONAS[persona] || PERSONAS.marketing
   const h = new Date().getHours()
   const greeting = h < 12 ? 'good morning' : h < 18 ? 'good afternoon' : 'good evening'
   const [filter, setFilter] = useState('all')
@@ -221,67 +220,16 @@ export function ScreenHome({ persona, shape, onNavigate, onAsk, revenueData, wor
         </button>
       </div>
 
-      {/* KPI GRID */}
-      <div className="grid-4 fade-in" style={{ animationDelay: '60ms' }}>
-        {p.kpis.map((k, i) => (
-          <KPI key={k.key} label={k.label} value={k.base} prev={k.prev} format={k.format}
-            invert={k.key === 'cac' || k.key === 'burn' || k.key === 'cycle'}
-            color={['var(--accent)', 'var(--accent-2)', 'var(--accent-4)', 'var(--accent-3)'][i % 4]}
-            data={shapeSeries(k.base * 0.6, 14, shape, 10 + i * 3)}/>
-        ))}
-      </div>
-
       {/* PULSE FEED */}
       <div className="row between fade-in" style={{ alignItems: 'center', animationDelay: '100ms' }}>
-        <div className="row tight" style={{ alignItems: 'center' }}>
-          <h2 style={{ fontSize: 22 }}>Today's pulse</h2>
-          <span className="chip accent" style={{ marginLeft: 8 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', animation: 'halo-pulse 1.8s ease-out infinite' }}/>
-            live
-          </span>
-        </div>
-        <div className="row tight">
-          {filters.map(([val, lbl]) => (
-            <button key={val} className={'btn sm' + (filter === val ? ' primary' : '')} onClick={() => setFilter(val)}>{lbl}</button>
-          ))}
-        </div>
+        <h2 style={{ fontSize: 22 }}>Today’s pulse</h2>
       </div>
-
-      <div className="stack fade-in" style={{ animationDelay: '140ms' }}>
-        {filtered.map(f => {
-          const ts = TAG_STYLES[f.tag] || {}
-          return (
-            <div key={f.id} className="feed-item">
-              <div className="row tight" style={{ alignItems: 'flex-start' }}>
-                <SrcIcon icon={f.who}>{f.who.slice(0, 2).toUpperCase()}</SrcIcon>
-                <div style={{ flex: 1 }}>
-                  <div className="row between" style={{ alignItems: 'center', marginBottom: 4 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14.5 }}>{f.title}</div>
-                    <div className="row tight" style={{ alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, color: ts.color, fontWeight: 600 }}>{ts.label}</span>
-                      <span className="muted" style={{ fontSize: 11 }}>{f.when}</span>
-                    </div>
-                  </div>
-                  <div style={{ color: 'var(--ink-2)', fontSize: 13.5, lineHeight: 1.55 }}>{f.body}</div>
-                </div>
-              </div>
-              <div className="row between" style={{ alignItems: 'center', marginTop: 4 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span className={'chip ' + (f.delta.dir === 'up' ? 'up' : 'dn')} style={{ fontSize: 11 }}>
-                    {f.delta.dir === 'up' ? '↑' : '↓'} {f.delta.value}
-                  </span>
-                  <span className="muted" style={{ fontSize: 11 }}>{f.delta.label}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 120, height: 32, overflow: 'hidden' }}>
-                    <Sparkline data={f.data} color={f.delta.dir === 'up' ? 'var(--up)' : 'var(--dn)'} height={32}/>
-                  </div>
-                  <button className="btn sm">{f.cta} <Icon name="arrow-right" size={12}/></button>
-                </div>
-              </div>
-            </div>
-          )
-        })}
+      <div className="card fade-in" style={{ textAlign: 'center', padding: '40px 24px', animationDelay: '140ms' }}>
+        <div style={{ fontSize: 36, marginBottom: 12 }}>&#128225;</div>
+        <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 6, color: 'var(--ink-2)' }}>Live intelligence feed</div>
+        <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6 }}>
+          Connect your channels to see real-time signals — spike alerts, conversion drops, campaign wins.
+        </div>
       </div>
     </div>
     {digestOpen && <DigestModal token={token} workspaceId={workspaceId} onClose={() => setDigestOpen(false)}/>}
@@ -298,7 +246,7 @@ const SUGGESTIONS = [
   'What should I focus on this week?',
 ]
 
-export function ScreenAsk({ persona, shape, token, workspaceId }) {
+export function ScreenAsk({ token, workspaceId }) {
   const [input, setInput] = useState('')
   const [threads, setThreads] = useState([])
   const [loading, setLoading] = useState(false)

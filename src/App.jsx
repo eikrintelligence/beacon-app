@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './AuthContext'
 import Login from './Login'
 import Onboarding from './Onboarding'
-import { PERSONAS, Icon } from './shared'
-import { useTweaks, TweaksPanel, TweakSection, TweakRadio, TweakColor, TweakSelect } from './TweaksPanel'
+import { Icon } from './shared'
+import { useTweaks } from './TweaksPanel'
 import { ScreenHome, ScreenAsk } from './ScreensHome'
 import { ScreenFunnel, ScreenConnections, ScreenDashboards, ScreenGoals } from './ScreensDeep'
 import { ScreenAttribution } from './ScreenAttribution'
@@ -40,7 +40,6 @@ const NAV = [
 
 const TWEAK_DEFAULTS = {
   theme: 'light', accent: '#ec6b4e', density: 'cozy',
-  persona: 'marketing', shape: 'growth',
 }
 
 const ROLE_NAV = {
@@ -125,12 +124,10 @@ function AppShell() {
 
   function navigate(name, params = {}) { setRoute({ name, params }) }
 
-  const persona = PERSONAS[tweaks.persona] || PERSONAS.marketing
-
   return (
     <div className="app">
       {sideOpen && <div onClick={() => setSideOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:99, display:'none' }} className="mob-overlay"/>}
-      <Sidebar route={route} navigate={(n,p) => { navigate(n,p); setSideOpen(false) }} persona={persona}
+      <Sidebar route={route} navigate={(n,p) => { navigate(n,p); setSideOpen(false) }}
         workspaceName={workspace?.name} filteredNav={filteredNav}
         role={role} onLogout={logout} sideOpen={sideOpen} setSideOpen={setSideOpen}
         memberships={memberships} switchWorkspace={m => { switchWorkspace(m); window.location.reload() }}
@@ -142,40 +139,11 @@ function AppShell() {
           revenueData={revenueData} workspaceData={workspaceData} refreshWorkspace={refreshWorkspace}
           token={token} workspace={workspace} role={role}/>
       </div>
-      {role === 'admin' && (
-        <TweaksPanel title="Tweaks">
-          <TweakSection label="Theme">
-            <TweakRadio label="Mode" value={tweaks.theme}
-              options={[{value:'light',label:'Light'},{value:'dark',label:'Dark'}]}
-              onChange={v => setTweak('theme', v)}/>
-            <TweakColor label="Accent" value={tweaks.accent} options={ACCENTS}
-              onChange={v => setTweak('accent', v)}/>
-          </TweakSection>
-          <TweakSection label="Layout">
-            <TweakRadio label="Density" value={tweaks.density}
-              options={[{value:'compact',label:'Compact'},{value:'cozy',label:'Cozy'},{value:'spacious',label:'Spacious'}]}
-              onChange={v => setTweak('density', v)}/>
-          </TweakSection>
-          <TweakSection label="Demo data">
-            <TweakSelect label="Persona" value={tweaks.persona}
-              options={[
-                {value:'marketing',label:'Marketing (ecom)'},
-                {value:'sales',label:'Sales'},
-                {value:'founder',label:'Founder / Exec'},
-                {value:'agency',label:'Agency'},
-              ]}
-              onChange={v => setTweak('persona', v)}/>
-            <TweakRadio label="Trend" value={tweaks.shape}
-              options={[{value:'growth',label:'Growth'},{value:'flat',label:'Flat'},{value:'decline',label:'Decline'}]}
-              onChange={v => setTweak('shape', v)}/>
-          </TweakSection>
-        </TweaksPanel>
-      )}
     </div>
   )
 }
 
-function Sidebar({ route, navigate, persona, workspaceName, filteredNav, role, onLogout, sideOpen, setSideOpen, memberships, switchWorkspace, onNewClient }) {
+function Sidebar({ route, navigate, workspaceName, filteredNav, role, onLogout, sideOpen, setSideOpen, memberships, switchWorkspace, onNewClient }) {
   const [wsOpen, setWsOpen] = useState(false)
   const branding = (() => { try { return JSON.parse(localStorage.getItem('sja_branding') || '{}') } catch { return {} } })()
   const groups = ['overview','analysis','admin']
@@ -290,13 +258,13 @@ function Topbar({ route, navigate, tweaks, setTweak, profile, onLogout, setSideO
 
 function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token, workspace, role, refreshWorkspace }) {
   switch (route.name) {
-    case 'home': return <ScreenHome persona={tweaks.persona} shape={tweaks.shape} onNavigate={navigate} onAsk={() => navigate('ask')} revenueData={revenueData} workspaceData={workspaceData} role={role} token={token} workspaceId={workspace?.id}/>
-    case 'ask': return <ScreenAsk persona={tweaks.persona} shape={tweaks.shape} token={token} workspaceId={workspace?.id}/>
-    case 'funnel': return <ScreenFunnel shape={tweaks.shape} workspaceData={workspaceData} onNavigate={navigate}/>
+    case 'home': return <ScreenHome onNavigate={navigate} onAsk={() => navigate('ask')} revenueData={revenueData} workspaceData={workspaceData} role={role} token={token} workspaceId={workspace?.id}/>
+    case 'ask': return <ScreenAsk token={token} workspaceId={workspace?.id}/>
+    case 'funnel': return <ScreenFunnel workspaceData={workspaceData} onNavigate={navigate}/>
     case 'attribution': return <ScreenAttribution/>
     case 'sku': return <ScreenSKU token={token} workspaceId={workspace?.id}/>
     case 'connections': return <ScreenConnections token={token} workspaceId={workspace?.id} refreshWorkspace={refreshWorkspace}/>
-    case 'dashboards': return <ScreenDashboards shape={tweaks.shape}/>
+    case 'dashboards': return <ScreenDashboards/>
     case 'goals': return <ScreenGoals workspaceData={workspaceData}/>
     case 'alerts': return <ScreenAlerts workspaceData={workspaceData} token={token} workspaceId={workspace?.id}/>
     case 'subscriptions': return <ScreenSubscriptions token={token} workspaceId={workspace?.id}/>
