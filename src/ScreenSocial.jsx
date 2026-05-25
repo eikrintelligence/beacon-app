@@ -9,7 +9,10 @@ const PLATFORMS = [
 
 
 export function ScreenSocial({ token, workspaceId }) {
-  const [metrics, setMetrics] = useState({})
+  const storageKey = `social_metrics_${workspaceId || 'default'}`
+  const [metrics, setMetrics] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(storageKey) || '{}') } catch { return {} }
+  })
   const [editing, setEditing] = useState(null)
   const [draft, setDraft] = useState({})
   const [saved, setSaved] = useState(false)
@@ -20,7 +23,9 @@ export function ScreenSocial({ token, workspaceId }) {
   }
 
   function saveEdit() {
-    setMetrics(m => ({ ...m, [editing]: { ...draft } }))
+    const next = { ...metrics, [editing]: { ...draft } }
+    setMetrics(next)
+    try { localStorage.setItem(storageKey, JSON.stringify(next)) } catch {}
     setEditing(null)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
