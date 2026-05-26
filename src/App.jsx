@@ -280,9 +280,9 @@ function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token,
     case 'subscriptions': return <ScreenSubscriptions token={token} workspaceId={workspace?.id} workspaceData={workspaceData}/>
     case 'history': return <ScreenHistory workspaceData={workspaceData} token={token} workspaceId={workspace?.id}/>
     case 'cohorts': return <ScreenCohorts token={token} workspaceId={workspace?.id} workspaceData={workspaceData}/>
-    case 'email': return <ScreenEmail token={token} workspaceId={workspace?.id} onNavigate={navigate}/>
+    case 'email': return <ScreenEmail token={token} workspaceId={workspace?.id} onNavigate={navigate} workspaceData={workspaceData}/>
     case 'social': return <ScreenSocial token={token} workspaceId={workspace?.id}/>
-    case 'website': return <ScreenWebsite token={token} workspaceId={workspace?.id} onNavigate={navigate}/>
+    case 'website': return <ScreenWebsite token={token} workspaceId={workspace?.id} onNavigate={navigate} workspaceData={workspaceData}/>
     case 'settings': return <ScreenSettings token={token} workspaceId={workspace?.id} workspaceData={workspaceData}/>
     default: return <div className="page"><h1>Coming soon</h1></div>
   }

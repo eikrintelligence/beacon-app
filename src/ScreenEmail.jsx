@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 
 const BASE = 'https://sja.eikr.ee/api'
 
-export function ScreenEmail({ token, workspaceId, onNavigate }) {
+export function ScreenEmail({ token, workspaceId, onNavigate, workspaceData }) {
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
   const [connected, setConnected] = useState(false)
@@ -31,7 +31,7 @@ export function ScreenEmail({ token, workspaceId, onNavigate }) {
 
       {loading && <div className="muted">Loading...</div>}
 
-      {!loading && !connected && (
+      {!loading && !connected && !workspaceData?.connections?.some(c => c.platform === "klaviyo") && (
         <div className="card" style={{ padding:'48px 36px', textAlign:'center' }}>
           <div style={{ fontSize:40, marginBottom:16 }}>📧</div>
           <h3 style={{ marginBottom:8 }}>Connect Klaviyo to see email data</h3>
@@ -42,7 +42,7 @@ export function ScreenEmail({ token, workspaceId, onNavigate }) {
         </div>
       )}
 
-      {!loading && connected && (
+      {!loading && (connected || workspaceData?.connections?.some(c => c.platform === "klaviyo")) && (
         <div className="card" style={{ padding: '48px 36px', textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>🔌</div>
           <h3 style={{ marginBottom: 8 }}>Connect Klaviyo to see email data</h3>

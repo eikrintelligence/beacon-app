@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 
 const BASE = 'https://sja.eikr.ee/api'
 
-export function ScreenWebsite({ token, workspaceId, onNavigate }) {
+export function ScreenWebsite({ token, workspaceId, onNavigate, workspaceData }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
