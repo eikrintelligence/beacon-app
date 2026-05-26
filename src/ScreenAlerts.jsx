@@ -63,7 +63,7 @@ function severityStyle(severity) {
 }
 
 export function ScreenAlerts({ workspaceData, token }) {
-  const initial = workspaceData?.alerts?.length > 0 ? workspaceData.alerts : DEMO_ALERTS
+  const initial = workspaceData?.alerts?.length > 0 ? workspaceData.alerts : []
   const [alerts, setAlerts] = useState(initial)
   const [dismissing, setDismissing] = useState(null)
   const [saved, setSaved] = useState(false)
