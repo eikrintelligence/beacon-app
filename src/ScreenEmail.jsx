@@ -4,13 +4,18 @@ const BASE = 'https://sja.eikr.ee/api'
 
 export function ScreenEmail({ token, workspaceId, onNavigate }) {
   const [loading, setLoading] = useState(true)
+  const [data, setData] = useState(null)
+  const [connected, setConnected] = useState(false)
 
   useEffect(() => {
     if (!token || !workspaceId) { setLoading(false); return }
     fetch(`${BASE}/klaviyo/metrics?workspace_id=${workspaceId}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-      .then(() => {})
+      .then(r => r.json())
+      .then(d => {
+        if (d && !d.error) { setData(d); setConnected(true) }
+      })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [token, workspaceId])
@@ -26,7 +31,18 @@ export function ScreenEmail({ token, workspaceId, onNavigate }) {
 
       {loading && <div className="muted">Loading...</div>}
 
-      {!loading && (
+      {!loading && !connected && (
+        <div className="card" style={{ padding:'48px 36px', textAlign:'center' }}>
+          <div style={{ fontSize:40, marginBottom:16 }}>📧</div>
+          <h3 style={{ marginBottom:8 }}>Connect Klaviyo to see email data</h3>
+          <p style={{ color:'var(--ink-3)', maxWidth:400, margin:'0 auto 24px' }}>
+            Link your Klaviyo account to see list size, open rates, flow performance and attributed revenue.
+          </p>
+          <button className="btn primary" onClick={() => onNavigate && onNavigate('connections')}>Connect Klaviyo →</button>
+        </div>
+      )}
+
+      {!loading && connected && (
         <div className="card" style={{ padding: '48px 36px', textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>🔌</div>
           <h3 style={{ marginBottom: 8 }}>Connect Klaviyo to see email data</h3>
