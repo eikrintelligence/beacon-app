@@ -85,6 +85,12 @@ function AppShell() {
     try { const data = await getWorkspace(token, workspace.id); setWorkspaceData(data) } catch (e) {}
   }
 
+  async function refreshWorkspace() {
+    if (token && workspace?.id) {
+      try { const data = await getWorkspace(token, workspace.id); setWorkspaceData(data) } catch (e) {}
+    }
+  }
+
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: 'var(--bg)' }}>
       <style>{`@keyframes sja-pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }`}</style>
