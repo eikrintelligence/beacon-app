@@ -222,6 +222,7 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
   const [metaAccountId, setMetaAccountId] = useState('')
   // GA4
   const [ga4PropertyId, setGa4PropertyId] = useState('')
+  const [ga4Json, setGa4Json] = useState('')
   // Klaviyo
   const [klaviyoKey, setKlaviyoKey] = useState('')
   // Google Ads
@@ -500,6 +501,8 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {connected && <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Enter new property ID to update:</div>}
                   <input style={inp} placeholder="GA4 Property ID (e.g. 123456789)" value={ga4PropertyId} onChange={e => setGa4PropertyId(e.target.value)}/>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Paste your Service Account JSON from Google Cloud Console</div>
+                  <textarea style={{ width:'100%', padding:'10px 14px', borderRadius:10, border:'1px solid var(--border)', background:'var(--surface)', fontSize:12, fontFamily:'var(--font-mono)', outline:'none', boxSizing:'border-box', height:80, resize:'vertical', color:'var(--ink)' }} placeholder='{"type":"service_account","client_email":"...","private_key":"..."}' value={ga4Json||''} onChange={e => setGa4Json(e.target.value)}/>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
                     <button className="btn sm primary" style={{ flex: 1 }} onClick={connectGA4} disabled={loading || !ga4PropertyId}>
