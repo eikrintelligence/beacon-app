@@ -7,7 +7,7 @@ const PLATFORMS = [
   { id: 'facebook',  name: 'Facebook',  color: '#1877f2', icon: 'FB' },
 ]
 
-export function PortalAgency({ token, workspaceId, workspace, logout }) {
+export function PortalAgency({ token, workspaceId, workspace, logout, role }) {
   const workspaceName = workspace?.name || 'Workspace'
   const storageKey = 'social_metrics_' + (workspaceId || 'default')
   const [metrics, setMetrics] = useState(() => {
@@ -17,6 +17,7 @@ export function PortalAgency({ token, workspaceId, workspace, logout }) {
   const [draft, setDraft] = useState({})
   const [saved, setSaved] = useState(false)
   const [csvMsg, setCsvMsg] = useState('')
+  const canImport = role === 'admin' || role === 'analyst'
 
   function startEdit(pid) { setEditing(pid); setDraft({ ...metrics[pid] }) }
 
@@ -77,11 +78,13 @@ export function PortalAgency({ token, workspaceId, workspace, logout }) {
         <div style={{ width: 1, height: 20, background: 'var(--border)' }}/>
         <span style={{ fontSize: 13, color: 'var(--ink-2)', fontWeight: 500 }}>{workspaceName}</span>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' }}>
+          {canImport && (
           <label style={{ padding: '5px 14px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--surface-2)', cursor: 'pointer', fontSize: 13, color: 'var(--ink-2)', fontWeight: 500 }}>
             Import CSV
             <input type="file" accept=".csv" style={{ display: 'none' }}
               onChange={e => { handleCsv(e.target.files[0]); e.target.value = '' }}/>
           </label>
+          )}
           <button onClick={logout} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', fontSize: 13, color: 'var(--ink-3)' }}>Sign out</button>
         </div>
       </header>

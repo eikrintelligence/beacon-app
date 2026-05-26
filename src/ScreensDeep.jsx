@@ -532,7 +532,8 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
                   <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5, padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 8 }}>
                     <strong style={{ color: 'var(--ink-2)' }}>How to export:</strong> TikTok Ads Manager → Reporting → select date range → Export CSV
                   </div>
-                  <label style={{ cursor: 'pointer' }}>
+                  {canImport && (
+          <label style={{ cursor: 'pointer' }}>
                     <div style={{ padding: '20px 16px', border: '2px dashed var(--border)', borderRadius: 10, textAlign: 'center', background: ttParsed ? 'color-mix(in oklab,var(--up) 8%,var(--surface))' : 'var(--surface)', transition: 'background 0.15s' }}>
                       {ttParsed ? (
                         <div style={{ color: 'var(--up)', fontWeight: 600, fontSize: 13 }}>✓ {ttParsed.length} campaign{ttParsed.length !== 1 ? 's' : ''} parsed — click to replace file</div>

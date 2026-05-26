@@ -9,7 +9,7 @@ const PLATFORMS = [
 ]
 
 
-export function ScreenSocial({ token, workspaceId }) {
+export function ScreenSocial({ token, workspaceId, role }) {
   const storageKey = `social_metrics_${workspaceId || 'default'}`
   const [metrics, setMetrics] = useState(() => {
     try { return JSON.parse(localStorage.getItem(storageKey) || '{}') } catch { return {} }
@@ -24,6 +24,7 @@ export function ScreenSocial({ token, workspaceId }) {
   }
 
   const [csvMsg, setCsvMsg] = useState('')
+  const canImport = role === 'admin' || role === 'analyst'
 
   function saveEdit() {
     const next = { ...metrics, [editing]: { ...draft } }
@@ -86,10 +87,12 @@ export function ScreenSocial({ token, workspaceId }) {
               {csvMsg || '✓ Saved'}
             </div>
           )}
+          {canImport && (
           <label style={{ cursor: 'pointer' }}>
             <div className="btn sm ghost" style={{ pointerEvents: 'none' }}>Import CSV</div>
             <input type="file" accept=".csv" style={{ display: 'none' }} onChange={e => { handleSocialCsv(e.target.files[0]); e.target.value = '' }}/>
           </label>
+          )}
         </div>
       </div>
 
