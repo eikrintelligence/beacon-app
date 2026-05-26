@@ -289,7 +289,9 @@ function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token,
     case 'email': return <ScreenEmail token={token} workspaceId={workspace?.id} onNavigate={navigate} workspaceData={workspaceData}/>
     case 'social': return <ScreenSocial token={token} workspaceId={workspace?.id}/>
     case 'website': return <ScreenWebsite token={token} workspaceId={workspace?.id} onNavigate={navigate} workspaceData={workspaceData}/>
-    case 'settings': return <ScreenSettings token={token} workspaceId={workspace?.id} workspaceData={workspaceData}/>
+    case 'settings':
+      if (role !== 'admin') return <ScreenHome onNavigate={navigate} onAsk={() => navigate('ask')} revenueData={revenueData} workspaceData={workspaceData} role={role} token={token} workspaceId={workspace?.id}/>
+      return <ScreenSettings token={token} workspaceId={workspace?.id} workspaceData={workspaceData} role={role}/>
     default: return <div className="page"><h1>Coming soon</h1></div>
   }
 }
@@ -315,7 +317,7 @@ function ClientPortalLink({ shareToken }) {
   )
 }
 
-function ScreenSettings({ token, workspaceId, workspaceData }) {
+function ScreenSettings({ token, workspaceId, workspaceData, role }) {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState('analyst')
   const [inviting, setInviting] = useState(false)
@@ -345,6 +347,7 @@ function ScreenSettings({ token, workspaceId, workspaceData }) {
   }
 
   const members = workspaceData?.members || []
+  const isAdmin = role === 'admin'
 
   return (
     <div className="page">
@@ -368,6 +371,7 @@ function ScreenSettings({ token, workspaceId, workspaceData }) {
           {members.length === 0 && <div className="muted" style={{ fontSize:13 }}>No team members yet</div>}
         </div>
 
+        {isAdmin && (
         <div style={{ borderTop:'1px solid var(--border)', paddingTop:16 }}>
           <div className="tag" style={{ marginBottom:12 }}>INVITE MEMBER</div>
           <div style={{ display:'flex', gap:10 }}>
@@ -393,9 +397,11 @@ function ScreenSettings({ token, workspaceId, workspaceData }) {
           </div>
           {inviteMsg && <div style={{ fontSize:13, marginTop:10, color:'var(--up)' }}>{inviteMsg}</div>}
         </div>
+        )}
       </div>
 
       {/* Branding */}
+      {isAdmin && (
       <div className="card">
         <h3 style={{ marginBottom: 4 }}>White-label branding</h3>
         <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 16 }}>Replaces "faro by EIKR" in the sidebar with your own brand</div>
@@ -425,9 +431,10 @@ function ScreenSettings({ token, workspaceId, workspaceData }) {
           </div>
         </div>
       </div>
+      )}
 
       {/* Client portal link */}
-      {workspaceData?.workspace?.share_token && (
+      {isAdmin && workspaceData?.workspace?.share_token && (
         <div className="card">
           <h3 style={{ marginBottom: 4 }}>Client portal</h3>
           <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 16 }}>Share this link with your client — no login required</div>
