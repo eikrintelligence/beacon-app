@@ -543,6 +543,7 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
                     </div>
                     <input type="file" accept=".csv,.tsv" style={{ display: 'none' }} onChange={e => handleTtFile(e.target.files[0])}/>
                   </label>
+                  )}
                   {ttParseError && <div style={{ color: 'var(--dn)', fontSize: 12, lineHeight: 1.4 }}>{ttParseError}</div>}
                   {ttParsed && ttParsed.length > 0 && (
                     <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 8 }}>
