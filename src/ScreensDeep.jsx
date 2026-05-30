@@ -206,6 +206,7 @@ export function ScreenFunnel({ shape, workspaceData, onNavigate }) {
           </div>
         </div>
       </div>
+
     </div>
   )
 }
@@ -216,7 +217,8 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
   const [syncStatus, setSyncStatus] = useState({})
   // Shopify
   const [shopifyUrl, setShopifyUrl] = useState('')
-  const [shopifyToken, setShopifyToken] = useState('')
+  const [shopifyClientId, setShopifyClientId] = useState('')
+  const [shopifyClientSecret, setShopifyClientSecret] = useState('')
   // Meta
   const [metaToken, setMetaToken] = useState('')
   const [metaAccountId, setMetaAccountId] = useState('')
@@ -233,6 +235,8 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
   const [gadsRefreshToken, setGadsRefreshToken] = useState('')
   // TikTok CSV import
   const [ttParsed, setTtParsed] = useState(null)
+  const [ttAccessToken, setTtAccessToken] = useState('')
+  const [ttAdvertiserId, setTtAdvertiserId] = useState('')
   const [ttParseError, setTtParseError] = useState('')
 
   const [msg, setMsg] = useState('')
@@ -307,8 +311,18 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
     setLoading(true); setMsg('')
     try {
       const clean = shopifyUrl.replace(/^https?:\/\//,'').replace(/\/$/,'')
-      const r = await post('https://sja.eikr.ee/api/shopify/connect', { store_url: clean, access_token: shopifyToken, workspace_id: workspaceId })
-      if (r.success) await afterConnect('shopify', 'Shopify'); else setMsg('Error: ' + r.error)
+      const r = await post('https://sja.eikr.ee/api/shopify/oauth/start', {
+        shop: clean,
+        workspace_id: workspaceId,
+        client_id: shopifyClientId,
+        client_secret: shopifyClientSecret
+      })
+
+      if (r.url) {
+        window.location.href = r.url
+      } else {
+        setMsg('Error: ' + (r.error || 'Shopify OAuth failed'))
+      }
     } catch (e) { setMsg('Connection failed: ' + e.message) }
     setLoading(false)
   }
@@ -381,6 +395,23 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
     reader.readAsText(file)
   }
 
+  async function connectTikTok() {
+    setLoading(true); setMsg('')
+    try {
+      const r = await post('https://sja.eikr.ee/api/tiktok/connect', {
+        workspace_id: workspaceId,
+        access_token: ttAccessToken,
+        advertiser_id: ttAdvertiserId
+      })
+
+      if (r.success) await afterConnect('tt', 'TikTok Ads')
+      else setMsg('Error: ' + (r.error || 'TikTok connection failed'))
+    } catch (e) {
+      setMsg('Connection failed: ' + e.message)
+    }
+    setLoading(false)
+  }
+
   async function importTikTok() {
     if (!ttParsed || !ttParsed.length) return
     setLoading(true); setMsg('')
@@ -393,6 +424,8 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
   }
 
   const inp = { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-body)', outline: 'none', boxSizing: 'border-box' }
+
+  const canImport = true
 
   const sources = [
     { id: 'shopify', name: 'Shopify',           short: 'SH', color: '#95bf47', desc: 'Orders, revenue, products, customers' },
@@ -453,10 +486,11 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {connected && <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Enter new credentials to update:</div>}
                   <input style={inp} placeholder="yourstore.myshopify.com" value={shopifyUrl} onChange={e => setShopifyUrl(e.target.value)}/>
-                  <input style={inp} type="password" placeholder="shpat_••••••••••••••••" value={shopifyToken} onChange={e => setShopifyToken(e.target.value)}/>
+                  <input style={inp} placeholder="Shopify Client ID" value={shopifyClientId} onChange={e => setShopifyClientId(e.target.value)}/>
+                  <input style={inp} type="password" placeholder="Shopify Client Secret" value={shopifyClientSecret} onChange={e => setShopifyClientSecret(e.target.value)}/>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
-                    <button className="btn sm primary" style={{ flex: 1 }} onClick={connectShopify} disabled={loading || !shopifyUrl || !shopifyToken}>
+                    <button className="btn sm primary" style={{ flex: 1 }} onClick={connectShopify} disabled={loading || !shopifyUrl || !shopifyClientId || !shopifyClientSecret}>
                       {loading ? <><span className="faro-spinner"/>Connecting…</> : connected ? 'Update' : 'Connect'}
                     </button>
                   </div>
@@ -526,59 +560,35 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
                 </div>
               )}
 
-              {/* TikTok CSV import */}
+              {/* TikTok API connect */}
               {isOpen && s.id === 'tt' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5, padding: '8px 12px', background: 'var(--surface-2)', borderRadius: 8 }}>
-                    <strong style={{ color: 'var(--ink-2)' }}>How to export:</strong> TikTok Ads Manager → Reporting → select date range → Export CSV
-                  </div>
-                  {canImport && (
-          <label style={{ cursor: 'pointer' }}>
-                    <div style={{ padding: '20px 16px', border: '2px dashed var(--border)', borderRadius: 10, textAlign: 'center', background: ttParsed ? 'color-mix(in oklab,var(--up) 8%,var(--surface))' : 'var(--surface)', transition: 'background 0.15s' }}>
-                      {ttParsed ? (
-                        <div style={{ color: 'var(--up)', fontWeight: 600, fontSize: 13 }}>✓ {ttParsed.length} campaign{ttParsed.length !== 1 ? 's' : ''} parsed — click to replace file</div>
-                      ) : (
-                        <div style={{ color: 'var(--ink-3)', fontSize: 13 }}>📂 Click to select TikTok Ads Manager CSV</div>
-                      )}
-                    </div>
-                    <input type="file" accept=".csv,.tsv" style={{ display: 'none' }} onChange={e => handleTtFile(e.target.files[0])}/>
-                  </label>
-                  )}
-                  {ttParseError && <div style={{ color: 'var(--dn)', fontSize: 12, lineHeight: 1.4 }}>{ttParseError}</div>}
-                  {ttParsed && ttParsed.length > 0 && (
-                    <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 8 }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-                        <thead>
-                          <tr style={{ background: 'var(--surface-2)' }}>
-                            {['Campaign', 'Spend', 'Impr.', 'Clicks', 'Conv.', 'ROAS'].map(h => (
-                              <th key={h} style={{ textAlign: h === 'Campaign' ? 'left' : 'right', padding: '6px 10px', color: 'var(--ink-3)', fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {ttParsed.slice(0, 6).map((row, i) => (
-                            <tr key={i} style={{ borderTop: '1px solid var(--border)' }}>
-                              <td style={{ padding: '5px 10px', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={row.campaign}>{row.campaign}</td>
-                              <td style={{ padding: '5px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>${row.spend.toLocaleString()}</td>
-                              <td style={{ padding: '5px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{row.impressions.toLocaleString()}</td>
-                              <td style={{ padding: '5px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{row.clicks.toLocaleString()}</td>
-                              <td style={{ padding: '5px 10px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{row.conversions}</td>
-                              <td style={{ padding: '5px 10px', textAlign: 'right', fontWeight: 600, color: row.roas >= 2 ? 'var(--up)' : row.roas > 0 ? 'var(--ink)' : 'var(--ink-3)' }}>{row.roas > 0 ? `${row.roas}×` : '—'}</td>
-                            </tr>
-                          ))}
-                          {ttParsed.length > 6 && (
-                            <tr style={{ borderTop: '1px solid var(--border)' }}>
-                              <td colSpan={6} style={{ padding: '5px 10px', color: 'var(--ink-3)', fontSize: 10, textAlign: 'center' }}>+ {ttParsed.length - 6} more campaigns</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {connected && <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Enter new TikTok credentials to update:</div>}
+
+                  <input
+                    style={inp}
+                    type="password"
+                    placeholder="TikTok Access Token"
+                    value={ttAccessToken}
+                    onChange={e => setTtAccessToken(e.target.value)}
+                  />
+
+                  <input
+                    style={inp}
+                    placeholder="TikTok Advertiser ID"
+                    value={ttAdvertiserId}
+                    onChange={e => setTtAdvertiserId(e.target.value)}
+                  />
+
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn sm" onClick={() => { setConnecting(null); setTtParsed(null); setTtParseError('') }}>Cancel</button>
-                    <button className="btn sm primary" style={{ flex: 1, justifyContent: 'center' }} onClick={importTikTok} disabled={loading || !ttParsed || !ttParsed.length}>
-                      {loading ? <><span className="faro-spinner"/>Importing…</> : ttParsed ? `Import ${ttParsed.length} campaigns` : 'Select a CSV first'}
+                    <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
+                    <button
+                      className="btn sm primary"
+                      style={{ flex: 1 }}
+                      onClick={connectTikTok}
+                      disabled={loading || !ttAccessToken || !ttAdvertiserId}
+                    >
+                      {loading ? <><span className="faro-spinner"/>Connecting…</> : connected ? 'Update' : 'Connect'}
                     </button>
                   </div>
                 </div>
@@ -839,8 +849,55 @@ export function ScreenDashboards({ token, workspaceId, workspaceData, revenueDat
 }
 
 
-export function ScreenGoals({ workspaceData }) {
+export function ScreenGoals({ workspaceData, token, workspaceId, refreshWorkspace }) {
   const goals = workspaceData?.goals || []
+  const [showGoalModal, setShowGoalModal] = useState(false)
+  const [goalName, setGoalName] = useState('')
+  const [goalTarget, setGoalTarget] = useState('')
+  const [goalType, setGoalType] = useState('revenue')
+  const [goalSaving, setGoalSaving] = useState(false)
+
+  async function createGoal() {
+    if (!goalName.trim() || !goalTarget || !workspaceId || !token) return
+    setGoalSaving(true)
+
+    try {
+      const today = new Date()
+      const end = new Date()
+      end.setMonth(end.getMonth() + 3)
+
+      const res = await fetch(`https://sja.eikr.ee/api/workspace/${workspaceId}/goal`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: goalType,
+          label: goalName,
+          target: Number(goalTarget),
+          current: 0,
+          start_date: today.toISOString().slice(0, 10),
+          end_date: end.toISOString().slice(0, 10)
+        })
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        setShowGoalModal(false)
+        setGoalName('')
+        setGoalTarget('')
+        if (refreshWorkspace) refreshWorkspace()
+        setTimeout(() => window.location.reload(), 700)
+      } else {
+        alert(data.error || 'Could not create goal')
+      }
+    } catch (e) {
+      alert(e.message)
+    } finally {
+      setGoalSaving(false)
+    }
+  }
   const displayGoals = goals
 
   function fmtVal(v, unit) {
@@ -871,7 +928,7 @@ export function ScreenGoals({ workspaceData }) {
           <div className="sub">{displayGoals.length} active goals · {onTrack ? '✓ on track' : '⚠ needs attention'}</div>
         </div>
         <div className="actions">
-          <button className="btn primary"><Icon name="plus" size={14}/> New goal</button>
+          <button className="btn primary" onClick={() => setShowGoalModal(true)}><Icon name="plus" size={14}/> New goal</button>
         </div>
       </div>
 
@@ -920,7 +977,7 @@ export function ScreenGoals({ workspaceData }) {
           <p style={{ color: 'var(--ink-3)', fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
             Set revenue, orders, or ROAS goals to track your progress and get on-track alerts.
           </p>
-          <button className="btn primary"><Icon name="plus" size={14}/> Add first goal</button>
+          <button className="btn primary" onClick={() => setShowGoalModal(true)}><Icon name="plus" size={14}/> Add first goal</button>
         </div>
       ) : (
       <div className="grid-2">
@@ -950,6 +1007,27 @@ export function ScreenGoals({ workspaceData }) {
           )
         })}
       </div>
+      )}
+
+      {showGoalModal && (
+        <div className="modal-backdrop" onClick={() => setShowGoalModal(false)}>
+          <div className="modal-card" onClick={e => e.stopPropagation()}>
+            <h3 style={{ marginBottom: 12 }}>Create Goal</h3>
+            <div style={{ display: 'grid', gap: 12 }}>
+              <select className="input" value={goalType} onChange={e => setGoalType(e.target.value)}>
+                <option value="revenue">Revenue</option>
+                <option value="orders">Orders</option>
+                <option value="roas">ROAS</option>
+              </select>
+              <input className="input" placeholder="Goal name" value={goalName} onChange={e => setGoalName(e.target.value)} />
+              <input className="input" placeholder="Target value" type="number" value={goalTarget} onChange={e => setGoalTarget(e.target.value)} />
+            </div>
+            <div className="row end" style={{ marginTop: 18, gap: 10 }}>
+              <button className="btn ghost" onClick={() => setShowGoalModal(false)}>Cancel</button>
+              <button className="btn primary" onClick={createGoal} disabled={goalSaving || !goalName.trim() || !goalTarget}>{goalSaving ? "Creating..." : "Create goal"}</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
