@@ -233,6 +233,10 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
   const [gadsClientId, setGadsClientId] = useState('')
   const [gadsClientSecret, setGadsClientSecret] = useState('')
   const [gadsRefreshToken, setGadsRefreshToken] = useState('')
+  // Google OAuth
+  const [googleAccounts, setGoogleAccounts] = useState(null)
+  const [selectedGa4Property, setSelectedGa4Property] = useState('')
+  const [selectedGadsCustomer, setSelectedGadsCustomer] = useState('')
   // TikTok CSV import
   const [ttParsed, setTtParsed] = useState(null)
   const [ttAccessToken, setTtAccessToken] = useState('')
@@ -338,41 +342,83 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
     setLoading(false)
   }
 
-  async function connectGA4() {
+  async function connectGoogleOAuth() {
     setLoading(true); setMsg('')
     try {
-      let parsed = {}
-      if (ga4Json && ga4Json.trim()) {
-        try {
-          parsed = JSON.parse(ga4Json)
-        } catch {
-          setMsg('Error: Invalid GA4 Service Account JSON')
-          setLoading(false)
-          return
-        }
+      const r = await post('https://sja.eikr.ee/api/google/oauth/start', {
+        workspace_id: workspaceId
+      })
+      if (r.url) {
+        window.location.href = r.url
+      } else {
+        setMsg('Error: ' + (r.error || 'Google OAuth failed'))
       }
+    } catch (e) {
+      setMsg('Connection failed: ' + e.message)
+    }
+    setLoading(false)
+  }
 
-      const r = await post('https://sja.eikr.ee/api/ga4/connect', {
+  async function loadGoogleAccounts() {
+    setLoading(true); setMsg('')
+    try {
+      const r = await fetch(`https://sja.eikr.ee/api/google/accounts?workspace_id=${workspaceId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(r => r.json())
+
+      if (r.success) {
+        setGoogleAccounts(r)
+        if (r.ga4_properties?.length && !selectedGa4Property) {
+          setSelectedGa4Property(r.ga4_properties[0].property_id)
+        }
+        if (r.google_ads_accounts?.length && !selectedGadsCustomer) {
+          setSelectedGadsCustomer(r.google_ads_accounts[0].customer_id)
+        }
+        if (!r.ga4_properties?.length && !r.google_ads_accounts?.length) {
+          setMsg('Google connected, but no GA4 or Google Ads accounts were found for this Google user.')
+        }
+      } else {
+        setMsg('Error: ' + (r.error || 'Could not load Google accounts'))
+      }
+    } catch (e) {
+      setMsg('Could not load Google accounts: ' + e.message)
+    }
+    setLoading(false)
+  }
+
+  async function saveGoogleSelection() {
+    setLoading(true); setMsg('')
+    try {
+      const r = await post('https://sja.eikr.ee/api/google/select', {
         workspace_id: workspaceId,
-        property_id: ga4PropertyId,
-        client_email: parsed.client_email || '',
-        private_key: parsed.private_key || ''
+        ga4_property_id: selectedGa4Property,
+        gads_customer_id: selectedGadsCustomer
       })
 
-      if (r.success) await afterConnect('ga4', 'Google Analytics')
-      else setMsg('Error: ' + (r.error || 'GA4 connection failed'))
-    } catch (e) { setMsg('Connection failed: ' + e.message) }
+      if (r.success) {
+        setConnecting(null)
+        try {
+          const d = await fetch(`https://sja.eikr.ee/api/workspace/${workspaceId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          }).then(r => r.json())
+          setConnections(d.connections || [])
+        } catch {}
+
+        if (refreshWorkspace) refreshWorkspace()
+
+        if (selectedGa4Property) await syncAfterConnect('ga4', 'Google Analytics')
+        if (selectedGadsCustomer) await syncAfterConnect('gads', 'Google Ads')
+
+        setTimeout(() => window.location.reload(), 2000)
+      } else {
+        setMsg('Error: ' + (r.error || 'Could not save Google selection'))
+      }
+    } catch (e) {
+      setMsg('Could not save Google selection: ' + e.message)
+    }
     setLoading(false)
   }
 
-  async function connectGoogleAds() {
-    setLoading(true); setMsg('')
-    try {
-      const r = await post('https://sja.eikr.ee/api/googleads/connect', { workspace_id: workspaceId, customer_id: gadsCustomerId, developer_token: gadsDeveloperToken, client_id: gadsClientId, client_secret: gadsClientSecret, refresh_token: gadsRefreshToken })
-      if (r.success) await afterConnect('gads', 'Google Ads'); else setMsg('Error: ' + r.error)
-    } catch (e) { setMsg('Connection failed: ' + e.message) }
-    setLoading(false)
-  }
 
   async function connectKlaviyo() {
     setLoading(true); setMsg('')
@@ -532,37 +578,84 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
                 </div>
               )}
 
-              {/* Google Ads form */}
-              {isOpen && s.id === 'gads' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {connected && <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Enter new credentials to update:</div>}
-                  <input style={inp} placeholder="Customer ID (e.g. 123-456-7890)" value={gadsCustomerId} onChange={e => setGadsCustomerId(e.target.value)}/>
-                  <input style={inp} placeholder="Developer Token" value={gadsDeveloperToken} onChange={e => setGadsDeveloperToken(e.target.value)}/>
-                  <input style={inp} placeholder="OAuth Client ID" value={gadsClientId} onChange={e => setGadsClientId(e.target.value)}/>
-                  <input style={inp} type="password" placeholder="OAuth Client Secret" value={gadsClientSecret} onChange={e => setGadsClientSecret(e.target.value)}/>
-                  <input style={inp} type="password" placeholder="Refresh Token" value={gadsRefreshToken} onChange={e => setGadsRefreshToken(e.target.value)}/>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
-                    <button className="btn sm primary" style={{ flex: 1 }} onClick={connectGoogleAds} disabled={loading || !gadsCustomerId}>
-                      {loading ? <><span className="faro-spinner"/>Connecting…</> : connected ? 'Update' : 'Connect'}
-                    </button>
+              {/* Google OAuth form for GA4 + Google Ads */}
+              {isOpen && (s.id === 'ga4' || s.id === 'gads') && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.45 }}>
+                    Connect Google once, then choose the Google Analytics property and Google Ads account Faro should use.
                   </div>
-                </div>
-              )}
 
-              {/* GA4 form */}
-              {isOpen && s.id === 'ga4' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {connected && <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Enter new property ID to update:</div>}
-                  <input style={inp} placeholder="GA4 Property ID (e.g. 123456789)" value={ga4PropertyId} onChange={e => setGa4PropertyId(e.target.value)}/>
-                  <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Paste your Service Account JSON from Google Cloud Console</div>
-                  <textarea style={{ width:'100%', padding:'10px 14px', borderRadius:10, border:'1px solid var(--border)', background:'var(--surface)', fontSize:12, fontFamily:'var(--font-mono)', outline:'none', boxSizing:'border-box', height:80, resize:'vertical', color:'var(--ink)' }} placeholder='{"type":"service_account","client_email":"...","private_key":"..."}' value={ga4Json||''} onChange={e => setGa4Json(e.target.value)}/>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
-                    <button className="btn sm primary" style={{ flex: 1 }} onClick={connectGA4} disabled={loading || !ga4PropertyId}>
-                      {loading ? <><span className="faro-spinner"/>Connecting…</> : connected ? 'Update' : 'Connect'}
-                    </button>
-                  </div>
+                  <button
+                    className="btn sm primary"
+                    style={{ justifyContent: 'center' }}
+                    onClick={connectGoogleOAuth}
+                    disabled={loading}
+                  >
+                    {loading ? <><span className="faro-spinner"/>Opening Google…</> : 'Connect Google'}
+                  </button>
+
+                  <button
+                    className="btn sm ghost"
+                    style={{ justifyContent: 'center' }}
+                    onClick={loadGoogleAccounts}
+                    disabled={loading}
+                  >
+                    {loading ? <><span className="faro-spinner"/>Loading accounts…</> : 'Load Google accounts'}
+                  </button>
+
+                  {googleAccounts && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)' }}>
+                        Google Analytics property
+                      </label>
+                      <select
+                        style={inp}
+                        value={selectedGa4Property}
+                        onChange={e => setSelectedGa4Property(e.target.value)}
+                      >
+                        <option value="">Do not connect GA4</option>
+                        {(googleAccounts.ga4_properties || []).map(p => (
+                          <option key={p.property_id} value={p.property_id}>
+                            {p.display_name || p.property_id} — {p.property_id}
+                          </option>
+                        ))}
+                      </select>
+
+                      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)' }}>
+                        Google Ads account
+                      </label>
+                      <select
+                        style={inp}
+                        value={selectedGadsCustomer}
+                        onChange={e => setSelectedGadsCustomer(e.target.value)}
+                      >
+                        <option value="">Do not connect Google Ads</option>
+                        {(googleAccounts.google_ads_accounts || []).map(a => (
+                          <option key={a.customer_id} value={a.customer_id}>
+                            {a.customer_id}
+                          </option>
+                        ))}
+                      </select>
+
+                      {(googleAccounts.ga4_error || googleAccounts.gads_error) && (
+                        <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.45 }}>
+                          Some Google accounts could not be listed. You can still save whichever accounts appear.
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
+                        <button
+                          className="btn sm primary"
+                          style={{ flex: 1, justifyContent: 'center' }}
+                          onClick={saveGoogleSelection}
+                          disabled={loading || (!selectedGa4Property && !selectedGadsCustomer)}
+                        >
+                          {loading ? <><span className="faro-spinner"/>Saving…</> : 'Save Google selection'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
