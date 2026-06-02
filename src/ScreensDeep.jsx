@@ -311,19 +311,21 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
     setLoading(true); setMsg('')
     try {
       const clean = shopifyUrl.replace(/^https?:\/\//,'').replace(/\/$/,'')
-      const r = await post('https://sja.eikr.ee/api/shopify/oauth/start', {
-        shop: clean,
+      const r = await post('https://sja.eikr.ee/api/shopify/connect-client-credentials', {
+        store_url: clean,
         workspace_id: workspaceId,
         client_id: shopifyClientId,
         client_secret: shopifyClientSecret
       })
 
-      if (r.url) {
-        window.location.href = r.url
+      if (r.success) {
+        await afterConnect('shopify', 'Shopify')
       } else {
-        setMsg('Error: ' + (r.error || 'Shopify OAuth failed'))
+        setMsg('Error: ' + (r.error || r.details?.error_description || 'Shopify connection failed'))
       }
-    } catch (e) { setMsg('Connection failed: ' + e.message) }
+    } catch (e) {
+      setMsg('Connection failed: ' + e.message)
+    }
     setLoading(false)
   }
 
