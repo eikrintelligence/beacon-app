@@ -341,8 +341,26 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
   async function connectGA4() {
     setLoading(true); setMsg('')
     try {
-      const r = await post('https://sja.eikr.ee/api/ga4/connect', { workspace_id: workspaceId, property_id: ga4PropertyId })
-      if (r.success) await afterConnect('ga4', 'Google Analytics'); else setMsg('Error: ' + r.error)
+      let parsed = {}
+      if (ga4Json && ga4Json.trim()) {
+        try {
+          parsed = JSON.parse(ga4Json)
+        } catch {
+          setMsg('Error: Invalid GA4 Service Account JSON')
+          setLoading(false)
+          return
+        }
+      }
+
+      const r = await post('https://sja.eikr.ee/api/ga4/connect', {
+        workspace_id: workspaceId,
+        property_id: ga4PropertyId,
+        client_email: parsed.client_email || '',
+        private_key: parsed.private_key || ''
+      })
+
+      if (r.success) await afterConnect('ga4', 'Google Analytics')
+      else setMsg('Error: ' + (r.error || 'GA4 connection failed'))
     } catch (e) { setMsg('Connection failed: ' + e.message) }
     setLoading(false)
   }
