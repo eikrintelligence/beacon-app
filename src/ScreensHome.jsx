@@ -310,21 +310,34 @@ export function ScreenAsk({ token, workspaceId }) {
 
     setLoadingThreadId(th.id)
     try {
-      const msgs = await fetch(`${BASE_API}/threads/${th.id}/messages`, {
+      const res = await fetch(`${BASE_API}/threads/${th.id}/messages`, {
         headers: { Authorization: `Bearer ${token}` }
-      }).then(r => r.json())
+      })
+
+      if (!res.ok) throw new Error(`Could not load conversation (${res.status})`)
+
+      const msgs = await res.json()
+      const list = Array.isArray(msgs) ? msgs : []
+
       // Pair messages into display bubbles
       const pairs = []
-      for (let i = 0; i < msgs.length; i++) {
-        if (msgs[i].role === 'user') {
-          const nxt = msgs[i + 1]
-          pairs.push({ q: msgs[i].content, a: nxt?.role === 'assistant' ? nxt.content : '' })
+      for (let i = 0; i < list.length; i++) {
+        if (list[i].role === 'user') {
+          const nxt = list[i + 1]
+          pairs.push({ q: list[i].content, a: nxt?.role === 'assistant' ? nxt.content : '' })
           if (nxt?.role === 'assistant') i++
         }
       }
+
       setThreadMessages(prev => ({ ...prev, [th.id]: pairs }))
-    } catch {}
-    setLoadingThreadId(null)
+    } catch (e) {
+      setThreadMessages(prev => ({
+        ...prev,
+        [th.id]: [{ q: 'Open conversation', a: 'Could not load this conversation. Start a new one or try again.' }]
+      }))
+    } finally {
+      setLoadingThreadId(null)
+    }
   }
 
   // Delete thread
