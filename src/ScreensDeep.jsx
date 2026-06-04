@@ -969,9 +969,18 @@ export function ScreenGoals({ workspaceData, token, workspaceId, refreshWorkspac
   const [goalTarget, setGoalTarget] = useState('')
   const [goalType, setGoalType] = useState('revenue')
   const [goalSaving, setGoalSaving] = useState(false)
+  const [goalError, setGoalError] = useState('')
 
   async function createGoal() {
-    if (!goalName.trim() || !goalTarget || !workspaceId || !token) return
+    if (!goalName.trim() || !goalTarget) {
+      setGoalError('Add a goal name and target value first.')
+      return
+    }
+    if (!workspaceId || !token) {
+      setGoalError('Could not create goal because workspace access is missing.')
+      return
+    }
+    setGoalError('')
     setGoalSaving(true)
 
     try {
@@ -1000,13 +1009,14 @@ export function ScreenGoals({ workspaceData, token, workspaceId, refreshWorkspac
         setShowGoalModal(false)
         setGoalName('')
         setGoalTarget('')
+        setGoalError('')
         if (refreshWorkspace) refreshWorkspace()
         setTimeout(() => window.location.reload(), 700)
       } else {
-        alert(data.error || 'Could not create goal')
+        setGoalError(data.error || 'Could not create goal')
       }
     } catch (e) {
-      alert(e.message)
+      setGoalError(e.message || 'Could not create goal')
     } finally {
       setGoalSaving(false)
     }
@@ -1125,7 +1135,12 @@ export function ScreenGoals({ workspaceData, token, workspaceId, refreshWorkspac
       {showGoalModal && (
         <div className="modal-backdrop" onClick={() => setShowGoalModal(false)}>
           <div className="modal-card" onClick={e => e.stopPropagation()}>
-            <h3 style={{ marginBottom: 12 }}>Create Goal</h3>
+            <div style={{ marginBottom: 16 }}>
+              <h3 style={{ marginBottom: 6 }}>Create a new goal</h3>
+              <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.5 }}>
+                Set a target Faro can track against revenue, orders, or ROAS.
+              </div>
+            </div>
             <div style={{ display: 'grid', gap: 12 }}>
               <select className="input" value={goalType} onChange={e => setGoalType(e.target.value)}>
                 <option value="revenue">Revenue</option>
@@ -1134,6 +1149,11 @@ export function ScreenGoals({ workspaceData, token, workspaceId, refreshWorkspac
               </select>
               <input className="input" placeholder="Goal name" value={goalName} onChange={e => setGoalName(e.target.value)} />
               <input className="input" placeholder="Target value" type="number" value={goalTarget} onChange={e => setGoalTarget(e.target.value)} />
+              {goalError && (
+                <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(248,113,113,0.12)', color: 'var(--dn)', fontSize: 13, fontWeight: 600 }}>
+                  {goalError}
+                </div>
+              )}
             </div>
             <div className="row end" style={{ marginTop: 18, gap: 10 }}>
               <button className="btn ghost" onClick={() => setShowGoalModal(false)}>Cancel</button>

@@ -257,17 +257,26 @@ function Topbar({ route, navigate, tweaks, setTweak, profile, onLogout, setSideO
         onClick={() => setTweak('theme', tweaks.theme==='dark'?'light':'dark')}>
         <Icon name="moon" size={16}/>
       </button>
-      <button className="btn ghost sm" title="Notifications" style={{ position:'relative' }}>
+      <button
+        className="btn ghost sm"
+        title="Notifications"
+        style={{ position:'relative' }}
+        onClick={() => alert('No new notifications yet')}
+      >
         <Icon name="bell" size={16}/>
         <span style={{ position:'absolute', top:4, right:4, width:7, height:7, borderRadius:'50%', background:'var(--accent)', boxShadow:'0 0 0 2px var(--surface)' }}/>
       </button>
       <button className="btn ghost sm" title="Morning digest" onClick={() => navigate('ask')}>
         <Icon name="zap" size={16}/>
       </button>
-      <div style={{ width:30, height:30, borderRadius:9, background:'linear-gradient(135deg,var(--accent),var(--accent-3))', color:'white', display:'grid', placeItems:'center', fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, marginLeft:4, cursor:'pointer' }}
-        title={profile?.full_name || 'Profile'}>
+      <button
+        className="btn ghost sm"
+        style={{ width:30, height:30, borderRadius:9, background:'linear-gradient(135deg,var(--accent),var(--accent-3))', color:'white', display:'grid', placeItems:'center', fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, marginLeft:4, cursor:'pointer', padding:0 }}
+        title={profile?.full_name || 'Profile'}
+        onClick={() => alert(profile?.full_name ? `Signed in as ${profile.full_name}` : 'Profile menu coming soon')}
+      >
         {initials}
-      </div>
+      </button>
     </div>
   )
 }
@@ -281,7 +290,7 @@ function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token,
     case 'sku': return <ScreenSKU token={token} workspaceId={workspace?.id} onNavigate={navigate}/>
     case 'connections': return <ScreenConnections token={token} workspaceId={workspace?.id} refreshWorkspace={refreshWorkspace}/>
     case 'dashboards': return <ScreenDashboards token={token} workspaceId={workspace?.id} workspaceData={workspaceData} revenueData={revenueData}/>
-    case 'goals': return <ScreenGoals workspaceData={workspaceData}/>
+    case 'goals': return <ScreenGoals workspaceData={workspaceData} token={token} workspaceId={workspace?.id} refreshWorkspace={refreshWorkspace}/>
     case 'alerts': return <ScreenAlerts workspaceData={workspaceData} token={token} workspaceId={workspace?.id}/>
     case 'subscriptions': return <ScreenSubscriptions token={token} workspaceId={workspace?.id} workspaceData={workspaceData}/>
     case 'history': return <ScreenHistory workspaceData={workspaceData} token={token} workspaceId={workspace?.id}/>

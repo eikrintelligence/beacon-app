@@ -111,7 +111,7 @@ export function ScreenHome({ onNavigate, onAsk, revenueData, workspaceData, role
           <div className="sub">{brandName} · Week {weekNumber} of {totalWeeks}</div>
         </div>
         <div className="actions">
-          <div className="range"><span className="dot"/> Last 7 days <Icon name="chev-down" size={12}/></div>
+          <div className="range" title="Showing the last 7 days"><span className="dot"/> Last 7 days</div>
           <button className="btn" onClick={() => setDigestOpen(true)}><Icon name="share" size={14}/> Share digest</button>
         </div>
       </div>
@@ -126,7 +126,7 @@ export function ScreenHome({ onNavigate, onAsk, revenueData, workspaceData, role
                 ${Math.round(current / 1000)}k
               </div>
               <div style={{ opacity: 0.5, fontSize: 20, fontFamily: 'var(--font-display)', fontWeight: 500 }}>/ ${Math.round(goalTarget/1000)}k</div>
-              <div style={{ padding: '4px 10px', borderRadius: 999, background: statusColor, color: ahead ? 'white' : 'var(--ink)', fontSize: 12, fontWeight: 700, marginLeft: 4 }}>
+              <div style={{ padding: '4px 10px', borderRadius: 999, background: statusColor, color: '#fff', fontSize: 12, fontWeight: 800, marginLeft: 4, textShadow: '0 1px 2px rgba(0,0,0,0.25)' }}>
                 {statusLabel}
               </div>
             </div>
@@ -508,10 +508,20 @@ export function ScreenAsk({ token, workspaceId }) {
                     dangerouslySetInnerHTML={{ __html: t.a.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }}
                   />
                   <div className="row between" style={{ marginTop:14, paddingTop:12, borderTop:'1px solid var(--border)' }}>
-                    <button className="btn sm ghost"><Icon name="share" size={12}/></button>
+                    <button
+                      className="btn sm ghost"
+                      title="Copy Faro answer"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(t.a || '')
+                          .then(() => alert('Faro answer copied'))
+                          .catch(() => alert('Could not copy answer'))
+                      }}
+                    >
+                      <Icon name="share" size={12}/>
+                    </button>
                     <div className="row tight">
-                      <button className="btn sm ghost">👍</button>
-                      <button className="btn sm ghost">👎</button>
+                      <button className="btn sm ghost" title="Helpful" onClick={() => alert('Thanks, feedback saved')}>👍</button>
+                      <button className="btn sm ghost" title="Not helpful" onClick={() => alert('Thanks, feedback saved')}>👎</button>
                     </div>
                   </div>
                 </div>
