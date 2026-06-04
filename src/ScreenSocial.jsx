@@ -9,7 +9,33 @@ const PLATFORMS = [
 ]
 
 
-export function ScreenSocial({ token, workspaceId, role }) {
+export function ScreenSocial({ token, workspaceId, role, onNavigate, workspaceData }) {
+  const hasSocialSource = workspaceData?.connections?.some(c =>
+    ['meta', 'tt', 'tiktok'].includes(c.platform) && c.status === 'active'
+  )
+
+  if (!hasSocialSource) {
+    return (
+      <div className="page">
+        <div className="page-head">
+          <div>
+            <h1>Social</h1>
+            <div className="sub">Social campaign performance and engagement signals</div>
+          </div>
+        </div>
+
+        <div className="card" style={{ textAlign:'center', padding:'52px 24px', maxWidth:680, margin:'32px auto' }}>
+          <div style={{ fontSize:46, marginBottom:16 }}>📣</div>
+          <h3 style={{ marginBottom:8 }}>Connect Meta or TikTok to see social data</h3>
+          <p style={{ color:'var(--ink-3)', fontSize:14, lineHeight:1.6, maxWidth:480, margin:'0 auto 22px' }}>
+            Faro needs a connected social ad source before it can show campaign performance, creative signals, views, CTR, and spend.
+          </p>
+          <button className="btn primary" onClick={() => onNavigate && onNavigate('connections')}>Connect sources →</button>
+        </div>
+      </div>
+    )
+  }
+
   const storageKey = `social_metrics_${workspaceId || 'default'}`
   const [metrics, setMetrics] = useState(() => {
     try { return JSON.parse(localStorage.getItem(storageKey) || '{}') } catch { return {} }

@@ -287,7 +287,7 @@ function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token,
     case 'ask': return <ScreenAsk token={token} workspaceId={workspace?.id}/>
     case 'funnel': return <ScreenFunnel workspaceData={workspaceData} onNavigate={navigate}/>
     case 'attribution': return <ScreenAttribution workspaceData={workspaceData} onNavigate={navigate} token={token} workspaceId={workspace?.id}/>
-    case 'sku': return <ScreenSKU token={token} workspaceId={workspace?.id} onNavigate={navigate}/>
+    case 'sku': return <ScreenSKU token={token} workspaceId={workspace?.id} onNavigate={navigate} workspaceData={workspaceData}/>
     case 'connections': return <ScreenConnections token={token} workspaceId={workspace?.id} refreshWorkspace={refreshWorkspace}/>
     case 'dashboards': return <ScreenDashboards token={token} workspaceId={workspace?.id} workspaceData={workspaceData} revenueData={revenueData}/>
     case 'goals': return <ScreenGoals workspaceData={workspaceData} token={token} workspaceId={workspace?.id} refreshWorkspace={refreshWorkspace}/>
@@ -296,7 +296,7 @@ function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token,
     case 'history': return <ScreenHistory workspaceData={workspaceData} token={token} workspaceId={workspace?.id}/>
     case 'cohorts': return <ScreenCohorts token={token} workspaceId={workspace?.id} workspaceData={workspaceData}/>
     case 'email': return <ScreenEmail token={token} workspaceId={workspace?.id} onNavigate={navigate} workspaceData={workspaceData}/>
-    case 'social': return <ScreenSocial token={token} workspaceId={workspace?.id}/>
+    case 'social': return <ScreenSocial token={token} workspaceId={workspace?.id} onNavigate={navigate} workspaceData={workspaceData}/>
     case 'website': return <ScreenWebsite token={token} workspaceId={workspace?.id} onNavigate={navigate} workspaceData={workspaceData}/>
     case 'settings':
       if (role !== 'admin') return <ScreenHome onNavigate={navigate} onAsk={() => navigate('ask')} revenueData={revenueData} workspaceData={workspaceData} role={role} token={token} workspaceId={workspace?.id}/>

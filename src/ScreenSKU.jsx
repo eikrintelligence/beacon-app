@@ -1,7 +1,31 @@
 import React, { useState, useEffect } from 'react'
 import { fmt, Icon } from './shared'
 
-export function ScreenSKU({ token, workspaceId, onNavigate }) {
+export function ScreenSKU({ token, workspaceId, onNavigate, workspaceData }) {
+  const hasShopify = workspaceData?.connections?.some(c => c.platform === 'shopify' && c.status === 'active')
+
+  if (!hasShopify) {
+    return (
+      <div className="page">
+        <div className="page-head">
+          <div>
+            <h1>Products</h1>
+            <div className="sub">Shopify products, units sold, and revenue breakdown</div>
+          </div>
+        </div>
+
+        <div className="card" style={{ textAlign:'center', padding:'52px 24px', maxWidth:680, margin:'32px auto' }}>
+          <div style={{ fontSize:46, marginBottom:16 }}>📦</div>
+          <h3 style={{ marginBottom:8 }}>Connect Shopify to see your products</h3>
+          <p style={{ color:'var(--ink-3)', fontSize:14, lineHeight:1.6, maxWidth:460, margin:'0 auto 22px' }}>
+            Faro needs Shopify access to show top-selling products, revenue by SKU, units sold, and product performance.
+          </p>
+          <button className="btn primary" onClick={() => onNavigate && onNavigate('connections')}>Connect sources →</button>
+        </div>
+      </div>
+    )
+  }
+
   const [products, setProducts] = useState(null)
   const [loading, setLoading] = useState(true)
   const [sort, setSort] = useState('revenue')
