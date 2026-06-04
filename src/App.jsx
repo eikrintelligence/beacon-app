@@ -237,6 +237,14 @@ function Sidebar({ route, navigate, workspaceName, filteredNav, role, onLogout, 
 function Topbar({ route, navigate, tweaks, setTweak, profile, onLogout, setSideOpen }) {
   const meta = NAV.find(n => n.id===route.name)
   const initials = profile?.full_name?.split(' ').map(n=>n[0]).join('').slice(0,2) || 'D'
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+
+  function closeMenus() {
+    setNotifOpen(false)
+    setProfileOpen(false)
+  }
+
   return (
     <div className="topbar">
       <button className="btn ghost sm mob-menu" onClick={() => setSideOpen(s => !s)} style={{ marginRight: 4 }}>
@@ -257,26 +265,77 @@ function Topbar({ route, navigate, tweaks, setTweak, profile, onLogout, setSideO
         onClick={() => setTweak('theme', tweaks.theme==='dark'?'light':'dark')}>
         <Icon name="moon" size={16}/>
       </button>
-      <button
-        className="btn ghost sm"
-        title="Notifications"
-        style={{ position:'relative' }}
-        onClick={() => alert('No new notifications yet')}
-      >
-        <Icon name="bell" size={16}/>
-        <span style={{ position:'absolute', top:4, right:4, width:7, height:7, borderRadius:'50%', background:'var(--accent)', boxShadow:'0 0 0 2px var(--surface)' }}/>
-      </button>
+      <div style={{ position:'relative' }}>
+        <button
+          className="btn ghost sm"
+          title="Notifications"
+          style={{ position:'relative' }}
+          onClick={() => {
+            setNotifOpen(v => !v)
+            setProfileOpen(false)
+          }}
+        >
+          <Icon name="bell" size={16}/>
+          <span style={{ position:'absolute', top:4, right:4, width:7, height:7, borderRadius:'50%', background:'var(--accent)', boxShadow:'0 0 0 2px var(--surface)' }}/>
+        </button>
+
+        {notifOpen && (
+          <div className="topbar-popover" style={{ right:0, width:300 }}>
+            <div className="topbar-popover-head">
+              <strong>Notifications</strong>
+              <span>Live checks</span>
+            </div>
+            <div className="topbar-popover-item">
+              <div className="topbar-dot ok"/>
+              <div>
+                <strong>No new alerts</strong>
+                <span>Faro will show goal, campaign, and data-source alerts here.</span>
+              </div>
+            </div>
+            <button className="topbar-popover-action" onClick={() => { closeMenus(); navigate('alerts') }}>
+              Open alerts →
+            </button>
+          </div>
+        )}
+      </div>
       <button className="btn ghost sm" title="Morning digest" onClick={() => navigate('ask')}>
         <Icon name="zap" size={16}/>
       </button>
-      <button
-        className="btn ghost sm"
-        style={{ width:30, height:30, borderRadius:9, background:'linear-gradient(135deg,var(--accent),var(--accent-3))', color:'white', display:'grid', placeItems:'center', fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, marginLeft:4, cursor:'pointer', padding:0 }}
-        title={profile?.full_name || 'Profile'}
-        onClick={() => alert(profile?.full_name ? `Signed in as ${profile.full_name}` : 'Profile menu coming soon')}
-      >
-        {initials}
-      </button>
+      <div style={{ position:'relative', marginLeft:4 }}>
+        <button
+          className="btn ghost sm"
+          style={{ width:30, height:30, borderRadius:9, background:'linear-gradient(135deg,var(--accent),var(--accent-3))', color:'white', display:'grid', placeItems:'center', fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, cursor:'pointer', padding:0 }}
+          title={profile?.full_name || 'Profile'}
+          onClick={() => {
+            setProfileOpen(v => !v)
+            setNotifOpen(false)
+          }}
+        >
+          {initials}
+        </button>
+
+        {profileOpen && (
+          <div className="topbar-popover" style={{ right:0, width:280 }}>
+            <div className="topbar-profile-card">
+              <div className="topbar-avatar-big">{initials}</div>
+              <div>
+                <strong>{profile?.full_name || 'Faro user'}</strong>
+                <span>{profile?.email || 'Signed in'}</span>
+              </div>
+            </div>
+
+            <button className="topbar-popover-action" onClick={() => { closeMenus(); navigate('settings') }}>
+              Account settings
+            </button>
+            <button className="topbar-popover-action" onClick={() => { closeMenus(); navigate('connections') }}>
+              Data sources
+            </button>
+            <button className="topbar-popover-action danger" onClick={onLogout}>
+              Sign out
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

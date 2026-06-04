@@ -318,3 +318,112 @@
     justify-content: center;
   }
 }
+
+/* Faro topbar menus */
+.topbar-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  z-index: 120;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: 0 24px 70px rgba(20, 15, 10, 0.18);
+}
+
+.topbar-popover-head {
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+  display: grid;
+  gap: 2px;
+}
+
+.topbar-popover-head strong,
+.topbar-profile-card strong {
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.topbar-popover-head span,
+.topbar-profile-card span,
+.topbar-popover-item span {
+  font-size: 12px;
+  color: var(--ink-3);
+  line-height: 1.45;
+}
+
+.topbar-popover-item {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 13px;
+  background: var(--surface-2);
+  margin-bottom: 8px;
+}
+
+.topbar-popover-item strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.topbar-dot {
+  width: 9px;
+  height: 9px;
+  margin-top: 4px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.topbar-dot.ok {
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(236,180,78,0.14);
+}
+
+.topbar-popover-action {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  text-align: left;
+}
+
+.topbar-popover-action:hover {
+  background: var(--surface-2);
+}
+
+.topbar-popover-action.danger {
+  color: var(--dn);
+}
+
+.topbar-profile-card {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 14px;
+  background: radial-gradient(circle at top left, rgba(236,180,78,0.14), transparent 36%), var(--surface-2);
+  margin-bottom: 8px;
+}
+
+.topbar-avatar-big {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg,var(--accent),var(--accent-3));
+  color: white;
+  font-family: var(--font-display);
+  font-weight: 800;
+}
