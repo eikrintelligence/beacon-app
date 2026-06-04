@@ -1056,7 +1056,7 @@ export function ScreenGoals({ workspaceData, token, workspaceId, refreshWorkspac
       </div>
 
       {revenue && (
-        <div className="card" style={{ background: 'var(--ink)', color: 'var(--bg)', padding: '20px 24px' }}>
+        <div className="card goal-hero-card">
           <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', opacity: 0.5, marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
             PRIMARY GOAL · {endDate ? new Date(endDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'DEC 2026'}
           </div>
@@ -1065,7 +1065,7 @@ export function ScreenGoals({ workspaceData, token, workspaceId, refreshWorkspac
               ${Math.round(revenue.current / 1000)}k
             </div>
             <div style={{ opacity: 0.4, fontSize: 22, fontFamily: 'var(--font-display)' }}>/ ${Math.round(revenue.target / 1000)}k</div>
-            <span style={{ padding: '4px 10px', borderRadius: 999, background: onTrack ? '#4ade80' : '#f87171', color: '#1a1612', fontSize: 12, fontWeight: 700 }}>
+            <span className={'goal-status-pill ' + (onTrack ? 'ok' : 'bad')}>
               {onTrack ? '✓ On track' : '✗ Off pace'}
             </span>
           </div>
@@ -1108,7 +1108,7 @@ export function ScreenGoals({ workspaceData, token, workspaceId, refreshWorkspac
           const pct = Math.min(100, Math.round((g.current / g.target) * 100))
           const up = pct >= 70
           return (
-            <div key={g.id} className="card">
+            <div key={g.id} className="card goal-mini-card">
               <div className="row between" style={{ marginBottom: 14 }}>
                 <div>
                   <div className="tag">{g.type?.toUpperCase()} · {daysLeft(g.end_date)}</div>
@@ -1142,20 +1142,29 @@ export function ScreenGoals({ workspaceData, token, workspaceId, refreshWorkspac
               </div>
             </div>
             <div style={{ display: 'grid', gap: 12 }}>
-              <select className="input" value={goalType} onChange={e => setGoalType(e.target.value)}>
-                <option value="revenue">Revenue</option>
-                <option value="orders">Orders</option>
-                <option value="roas">ROAS</option>
-              </select>
-              <input className="input" placeholder="Goal name" value={goalName} onChange={e => setGoalName(e.target.value)} />
-              <input className="input" placeholder="Target value" type="number" value={goalTarget} onChange={e => setGoalTarget(e.target.value)} />
+              <label className="goal-field">
+                <span>Goal type</span>
+                <select className="input" value={goalType} onChange={e => setGoalType(e.target.value)}>
+                  <option value="revenue">Revenue</option>
+                  <option value="orders">Orders</option>
+                  <option value="roas">ROAS</option>
+                </select>
+              </label>
+
+              <label className="goal-field">
+                <span>Goal name</span>
+                <input className="input" placeholder="Example: Q3 revenue target" value={goalName} onChange={e => setGoalName(e.target.value)} />
+              </label>
+
+              <label className="goal-field">
+                <span>Target value</span>
+                <input className="input" placeholder="Example: 150000" type="number" value={goalTarget} onChange={e => setGoalTarget(e.target.value)} />
+              </label>
               {goalError && (
-                <div style={{ padding: '10px 12px', borderRadius: 10, background: 'rgba(248,113,113,0.12)', color: 'var(--dn)', fontSize: 13, fontWeight: 600 }}>
-                  {goalError}
-                </div>
+                <div className="goal-error">{goalError}</div>
               )}
             </div>
-            <div className="row end" style={{ marginTop: 18, gap: 10 }}>
+            <div className="goal-modal-actions">
               <button className="btn ghost" onClick={() => setShowGoalModal(false)}>Cancel</button>
               <button className="btn primary" onClick={createGoal} disabled={goalSaving || !goalName.trim() || !goalTarget}>{goalSaving ? "Creating..." : "Create goal"}</button>
             </div>
