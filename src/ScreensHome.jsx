@@ -70,6 +70,10 @@ function DigestModal({ token, workspaceId, onClose }) {
 }
 
 export function ScreenHome({ onNavigate, onAsk, revenueData, workspaceData, role, token, workspaceId }) {
+  const [dateRangeLabel, setDateRangeLabel] = useState('Last 7 days')
+  const [dateRangeOpen, setDateRangeOpen] = useState(false)
+  const dateRangeOptions = ['Last 7 days', 'Last 30 days', 'This month', 'This quarter']
+
   if (role === 'client') return <ClientView revenueData={revenueData} workspaceData={workspaceData}/>
   const h = new Date().getHours()
   const greeting = h < 12 ? 'good morning' : h < 18 ? 'good afternoon' : 'good evening'
@@ -111,7 +115,55 @@ export function ScreenHome({ onNavigate, onAsk, revenueData, workspaceData, role
           <div className="sub">{brandName} · Week {weekNumber} of {totalWeeks}</div>
         </div>
         <div className="actions">
-          <div className="range" title="Showing the last 7 days"><span className="dot"/> Last 7 days</div>
+          <div style={{ position:'relative' }}>
+            <button
+              className="range"
+              title="Choose reporting range"
+              onClick={() => setDateRangeOpen(v => !v)}
+              style={{ cursor:'pointer' }}
+            >
+              <span className="dot"/> {dateRangeLabel} <Icon name="chev-down" size={12}/>
+            </button>
+
+            {dateRangeOpen && (
+              <div style={{
+                position:'absolute',
+                top:'calc(100% + 8px)',
+                right:0,
+                width:180,
+                zIndex:50,
+                padding:6,
+                border:'1px solid var(--border)',
+                borderRadius:14,
+                background:'var(--surface)',
+                boxShadow:'0 18px 45px rgba(28,22,16,0.14)'
+              }}>
+                {dateRangeOptions.map(opt => (
+                  <button
+                    key={opt}
+                    onClick={() => {
+                      setDateRangeLabel(opt)
+                      setDateRangeOpen(false)
+                    }}
+                    style={{
+                      width:'100%',
+                      border:0,
+                      background: opt === dateRangeLabel ? 'var(--surface-2)' : 'transparent',
+                      color:'var(--ink)',
+                      padding:'10px 11px',
+                      borderRadius:10,
+                      textAlign:'left',
+                      cursor:'pointer',
+                      fontSize:13,
+                      fontWeight: opt === dateRangeLabel ? 750 : 550
+                    }}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button className="btn" onClick={() => setDigestOpen(true)}><Icon name="share" size={14}/> Share digest</button>
         </div>
       </div>
