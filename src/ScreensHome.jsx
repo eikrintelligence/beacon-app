@@ -169,7 +169,7 @@ export function ScreenHome({ onNavigate, onAsk, revenueData, workspaceData, role
       </div>
 
       {/* $500K GOAL TRACKER */}
-      <div className="card fade-in today-hero-card">
+      <div className="card fade-in" style={{ background: 'var(--ink)', color: 'var(--bg)', borderColor: 'var(--ink)', padding: '24px 28px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 24, alignItems: 'start' }}>
           <div style={{ gridColumn: '1 / 3' }}>
             <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', opacity: 0.5, marginBottom: 8, fontFamily: 'var(--font-mono)' }}>{goal?.label?.toUpperCase() || 'REVENUE GOAL'}</div>
@@ -178,14 +178,14 @@ export function ScreenHome({ onNavigate, onAsk, revenueData, workspaceData, role
                 ${Math.round(current / 1000)}k
               </div>
               <div style={{ opacity: 0.5, fontSize: 20, fontFamily: 'var(--font-display)', fontWeight: 500 }}>/ ${Math.round(goalTarget/1000)}k</div>
-              <div className={'today-status-pill ' + (ahead ? 'ahead' : onTrack ? 'watch' : 'off')}>
+              <div style={{ padding: '4px 10px', borderRadius: 999, background: statusColor, color: '#fff', fontSize: 12, fontWeight: 800, marginLeft: 4, textShadow: '0 1px 2px rgba(0,0,0,0.25)' }}>
                 {statusLabel}
               </div>
             </div>
             {/* Progress bar */}
-            <div className="today-progress-track">
-              <div className="today-progress-fill" style={{ width: pct + '%' }}/>
-              <div className="today-progress-marker" style={{ left: projPct + '%' }}/>
+            <div style={{ height: 6, background: 'rgba(255,255,255,0.12)', borderRadius: 3, marginBottom: 8, position: 'relative' }}>
+              <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: pct + '%', background: 'var(--accent)', borderRadius: 3, transition: 'width 0.6s ease' }}/>
+              <div style={{ position: 'absolute', left: projPct + '%', top: -3, width: 2, height: 12, background: 'rgba(255,255,255,0.4)', borderRadius: 1 }}/>
             </div>
             <div style={{ fontSize: 12, opacity: 0.55, fontFamily: 'var(--font-mono)' }}>
               {pct}% complete · projected ${projectedK}k at current pace
