@@ -545,9 +545,23 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
                   {connected ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
                       <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: 10.5, fontWeight: 700,
-                        background: sync === 'syncing' ? 'color-mix(in oklab,#888 15%,var(--surface))' : sync === 'failed' ? 'color-mix(in oklab,var(--dn) 15%,var(--surface))' : 'color-mix(in oklab,var(--up) 15%,var(--surface))',
-                        color: sync === 'syncing' ? 'var(--ink-3)' : sync === 'failed' ? 'var(--dn)' : 'var(--up)' }}>
-                        {sync === 'syncing' ? <><span className="faro-spinner"/>Syncing…</> : sync === 'failed' ? 'Sync failed ⚠' : 'Connected ✓'}
+                        background:
+                          sync === 'syncing' ? 'color-mix(in oklab,#888 15%,var(--surface))' :
+                          sync === 'failed' ? 'color-mix(in oklab,var(--dn) 15%,var(--surface))' :
+                          sync === 'pending' ? 'color-mix(in oklab,var(--accent) 18%,var(--surface))' :
+                          'color-mix(in oklab,var(--up) 15%,var(--surface))',
+                        color:
+                          sync === 'syncing' ? 'var(--ink-3)' :
+                          sync === 'failed' ? 'var(--dn)' :
+                          sync === 'pending' ? 'var(--accent)' :
+                          'var(--up)' }}>
+                        {sync === 'syncing'
+                          ? <><span className="faro-spinner"/>Syncing…</>
+                          : sync === 'failed'
+                            ? 'Sync failed ⚠'
+                            : sync === 'pending'
+                              ? 'Approval pending ⏳'
+                              : 'Connected ✓'}
                       </span>
                       {conn?.last_synced && sync !== 'syncing' && (
                         <span className="muted" style={{ fontSize: 10.5 }}>
