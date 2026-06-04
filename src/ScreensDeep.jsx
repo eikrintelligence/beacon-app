@@ -768,16 +768,32 @@ function DashboardView({ dash, revenueData, onBack, onDelete }) {
   const [pinned, setPinned] = useState(() => {
     try { return JSON.parse(localStorage.getItem(storageKey) || '[]') } catch { return [] }
   })
+  const featuredStorageKey = `dash_featured_${dash.id}`
+  const [featuredMetric, setFeaturedMetric] = useState(() => {
+    try { return localStorage.getItem(featuredStorageKey) || '' } catch { return '' }
+  })
 
   function togglePin(key) {
     setPinned(prev => {
       const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
       localStorage.setItem(storageKey, JSON.stringify(next))
+      if (!next.includes(featuredMetric)) {
+        setFeaturedMetric('')
+        localStorage.removeItem(featuredStorageKey)
+      }
       return next
     })
   }
 
+  function toggleFeaturedMetric(key) {
+    const next = featuredMetric === key ? '' : key
+    setFeaturedMetric(next)
+    if (next) localStorage.setItem(featuredStorageKey, next)
+    else localStorage.removeItem(featuredStorageKey)
+  }
+
   const pinnedMetrics   = AVAILABLE_METRICS.filter(m =>  pinned.includes(m.key))
+  const featured        = pinnedMetrics.find(m => m.key === featuredMetric)
   const unpinnedMetrics = AVAILABLE_METRICS.filter(m => !pinned.includes(m.key))
 
   const inputSt = { width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)', fontSize: 14, color: 'var(--ink)', fontFamily: 'var(--font-body)', outline: 'none', boxSizing: 'border-box' }
@@ -803,6 +819,28 @@ function DashboardView({ dash, revenueData, onBack, onDelete }) {
         </div>
       )}
 
+      {featured && (
+        <div className="card" style={{
+          padding: '26px 28px',
+          background: 'radial-gradient(circle at top left, rgba(236,180,78,0.14), transparent 34%), var(--surface)',
+          border: '1px solid color-mix(in oklab,var(--accent) 24%,var(--border))',
+          boxShadow: '0 22px 60px rgba(28,22,16,0.10)'
+        }}>
+          <div className="tag" style={{ marginBottom: 8 }}>TOP INDICATOR</div>
+          <div style={{ display:'flex', justifyContent:'space-between', gap:16, alignItems:'flex-start' }}>
+            <div>
+              <h2 style={{ margin:'0 0 8px', fontSize:18 }}>{featured.label}</h2>
+              <div style={{ fontSize:54, fontWeight:850, fontFamily:'var(--font-display)', letterSpacing:'-0.04em', lineHeight:1 }}>
+                {getMetricValue(featured.key, revenueData)}
+              </div>
+            </div>
+            <button className="btn ghost sm" onClick={() => toggleFeaturedMetric(featured.key)}>
+              Remove top indicator
+            </button>
+          </div>
+        </div>
+      )}
+
       {pinnedMetrics.length > 0 && (
         <div className="grid-2" style={{ gap: 12 }}>
           {pinnedMetrics.map(m => (
@@ -810,6 +848,13 @@ function DashboardView({ dash, revenueData, onBack, onDelete }) {
               <button onClick={() => togglePin(m.key)} style={{ position: 'absolute', top: 12, right: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-3)', fontSize: 18, lineHeight: 1 }}>×</button>
               <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.07em', color: 'var(--ink-3)', textTransform: 'uppercase', marginBottom: 6 }}>{m.label}</div>
               <div style={{ fontSize: 36, fontWeight: 800, fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>{getMetricValue(m.key, revenueData)}</div>
+              <button
+                className={'btn sm ' + (featuredMetric === m.key ? 'primary' : 'ghost')}
+                style={{ marginTop: 14 }}
+                onClick={() => toggleFeaturedMetric(m.key)}
+              >
+                {featuredMetric === m.key ? 'Top indicator ✓' : 'Make top indicator'}
+              </button>
             </div>
           ))}
         </div>
