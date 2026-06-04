@@ -272,8 +272,22 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
     try {
       const d = await fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json())
       if (d.error) {
-        setSyncStatus(p => ({ ...p, [platformId]: 'failed' }))
-        setMsg('Connected but data sync failed — check credentials')
+        const detailsText = JSON.stringify(d.details || d.error || '').toLowerCase()
+        const isGoogleAdsApprovalPending =
+          platformId === 'gads' &&
+          (
+            detailsText.includes('developer token is only approved for use with test accounts') ||
+            detailsText.includes('apply for basic or standard access') ||
+            detailsText.includes('authorization_error')
+          )
+
+        if (isGoogleAdsApprovalPending) {
+          setSyncStatus(p => ({ ...p, [platformId]: 'pending' }))
+          setMsg('✓ Google Ads connected — campaign data will unlock after Google approves Eikr API access')
+        } else {
+          setSyncStatus(p => ({ ...p, [platformId]: 'failed' }))
+          setMsg('Connected but data sync failed — check credentials')
+        }
       } else {
         setSyncStatus(p => ({ ...p, [platformId]: 'ok' }))
         setMsg(`✓ ${platformName} connected — data synced`)
