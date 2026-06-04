@@ -252,6 +252,7 @@ export function ScreenAsk({ token, workspaceId }) {
   const [savedThreads, setSavedThreads]       = useState([])
   const [input, setInput]                     = useState('')
   const [loadingMsg, setLoadingMsg]           = useState(false)
+  const [answerFeedback, setAnswerFeedback] = useState({})
   const [creatingThread, setCreatingThread]   = useState(false)
   const [loadingThreadId, setLoadingThreadId] = useState(null)
   const [showThreads, setShowThreads]         = useState(false)
@@ -394,6 +395,22 @@ export function ScreenAsk({ token, workspaceId }) {
 
   const isLoadingThread = loadingThreadId === currentThreadId
 
+  useEffect(() => {
+    const onSlashFocus = e => {
+      const active = document.activeElement
+      const isTyping = active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName)
+      if (isTyping) return
+
+      if (e.key === '/' || e.code === 'NumpadDivide') {
+        e.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+
+    window.addEventListener('keydown', onSlashFocus)
+    return () => window.removeEventListener('keydown', onSlashFocus)
+  }, [])
+
   return (
     <>
       {/* Threads sidebar */}
@@ -448,7 +465,7 @@ export function ScreenAsk({ token, workspaceId }) {
               <div className="sub" style={{ maxWidth:380, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                 {currentThreadId
                   ? (savedThreads.find(t => t.id === currentThreadId)?.title || 'Conversation')
-                  : 'Plain-English questions across all your data'}
+                  : 'Your AI business analyst for sales, ads, customers, products, and growth'}
               </div>
             </div>
           </div>
@@ -462,14 +479,36 @@ export function ScreenAsk({ token, workspaceId }) {
           </div>
         </div>
 
-        {/* Suggestions — shown when current thread has no messages yet */}
+        {/* Empty state — shown when current thread has no messages yet */}
         {currentMsgs.length === 0 && !isLoadingThread && (
-          <div className="fade-in">
-            <div className="tag" style={{ marginBottom:12 }}>TRY ASKING</div>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
-              {SUGGESTIONS.map(s => (
-                <button key={s} className="btn" style={{ fontSize:13 }} onClick={() => submit(s)}>
-                  {s}
+          <div className="card fade-in" style={{
+            padding: 22,
+            border: '1px solid var(--border)',
+            background: 'radial-gradient(circle at top left, rgba(236,180,78,0.12), transparent 32%), var(--surface)',
+            boxShadow: '0 18px 45px rgba(28,22,16,0.06)'
+          }}>
+            <div style={{ display:'flex', gap:14, alignItems:'flex-start', marginBottom:16 }}>
+              <div style={{ width:42, height:42, borderRadius:14, background:'linear-gradient(135deg,var(--accent),var(--accent-3))', color:'#fff', display:'grid', placeItems:'center', boxShadow:'0 12px 30px rgba(236,180,78,0.25)', flexShrink:0 }}>
+                <Icon name="sparkles" size={18}/>
+              </div>
+              <div>
+                <h3 style={{ margin:'0 0 6px', letterSpacing:'-0.02em' }}>No conversation yet</h3>
+                <div style={{ color:'var(--ink-3)', fontSize:14, lineHeight:1.6, maxWidth:620 }}>
+                  Ask Faro anything about revenue, ROAS, products, customer behavior, campaign performance, or what needs attention today.
+                </div>
+              </div>
+            </div>
+
+            <div className="tag" style={{ marginBottom:10 }}>START WITH</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))', gap:10 }}>
+              {SUGGESTIONS.slice(0, 6).map(s => (
+                <button
+                  key={s}
+                  className="btn"
+                  style={{ fontSize:13, justifyContent:'flex-start', minHeight:42, whiteSpace:'normal', textAlign:'left' }}
+                  onClick={() => submit(s)}
+                >
+                  <Icon name="sparkles" size={13}/> {s}
                 </button>
               ))}
             </div>
@@ -512,16 +551,35 @@ export function ScreenAsk({ token, workspaceId }) {
                       className="btn sm ghost"
                       title="Copy Faro answer"
                       onClick={() => {
+                        const key = `msg-${i}`
                         navigator.clipboard?.writeText(t.a || '')
-                          .then(() => alert('Faro answer copied'))
-                          .catch(() => alert('Could not copy answer'))
+                          .then(() => {
+                            setAnswerFeedback(prev => ({ ...prev, [key]: 'copied' }))
+                            setTimeout(() => setAnswerFeedback(prev => ({ ...prev, [key]: prev[key] === 'copied' ? null : prev[key] })), 1800)
+                          })
+                          .catch(() => setAnswerFeedback(prev => ({ ...prev, [key]: 'copy failed' })))
                       }}
                     >
                       <Icon name="share" size={12}/>
+                      {answerFeedback[`msg-${i}`] === 'copied' ? 'Copied' : 'Share'}
                     </button>
                     <div className="row tight">
-                      <button className="btn sm ghost" title="Helpful" onClick={() => alert('Thanks, feedback saved')}>👍</button>
-                      <button className="btn sm ghost" title="Not helpful" onClick={() => alert('Thanks, feedback saved')}>👎</button>
+                      <button
+                        className="btn sm ghost"
+                        title="Helpful"
+                        style={answerFeedback[`msg-${i}`] === 'up' ? { background:'rgba(74,222,128,0.12)', color:'var(--up)' } : null}
+                        onClick={() => setAnswerFeedback(prev => ({ ...prev, [`msg-${i}`]: 'up' }))}
+                      >
+                        👍 Helpful
+                      </button>
+                      <button
+                        className="btn sm ghost"
+                        title="Not helpful"
+                        style={answerFeedback[`msg-${i}`] === 'down' ? { background:'rgba(248,113,113,0.12)', color:'var(--dn)' } : null}
+                        onClick={() => setAnswerFeedback(prev => ({ ...prev, [`msg-${i}`]: 'down' }))}
+                      >
+                        👎 Needs work
+                      </button>
                     </div>
                   </div>
                 </div>
