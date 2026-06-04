@@ -93,8 +93,8 @@ export async function testShopify(token) {
   return res.json()
 }
 
-export async function getRevenue(token, workspaceId) {
-  const res = await fetch(`${BASE}/shopify/revenue?workspace_id=${workspaceId}`, {
+export async function getRevenue(token, workspaceId, days = 30) {
+  const res = await fetch(`${BASE}/shopify/revenue?workspace_id=${workspaceId}&days=${days}`, {
     headers: authHeaders(token)
   })
   return res.json()

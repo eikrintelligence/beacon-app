@@ -69,10 +69,19 @@ function DigestModal({ token, workspaceId, onClose }) {
   )
 }
 
-export function ScreenHome({ onNavigate, onAsk, revenueData, workspaceData, role, token, workspaceId }) {
-  const [dateRangeLabel, setDateRangeLabel] = useState('Last 7 days')
+export function ScreenHome({ onNavigate, onAsk, revenueData, revenueDays, setRevenueDays, workspaceData, role, token, workspaceId }) {
+  const [dateRangeLabel, setDateRangeLabel] = useState(
+    revenueDays === 7 ? 'Last 7 days' :
+    revenueDays === 90 ? 'This quarter' :
+    'Last 30 days'
+  )
   const [dateRangeOpen, setDateRangeOpen] = useState(false)
-  const dateRangeOptions = ['Last 7 days', 'Last 30 days', 'This month', 'This quarter']
+  const dateRangeOptions = [
+    { label: 'Last 7 days', days: 7 },
+    { label: 'Last 30 days', days: 30 },
+    { label: 'This month', days: new Date().getDate() },
+    { label: 'This quarter', days: 90 },
+  ]
 
   if (role === 'client') return <ClientView revenueData={revenueData} workspaceData={workspaceData}/>
   const h = new Date().getHours()
@@ -140,25 +149,26 @@ export function ScreenHome({ onNavigate, onAsk, revenueData, workspaceData, role
               }}>
                 {dateRangeOptions.map(opt => (
                   <button
-                    key={opt}
+                    key={opt.label}
                     onClick={() => {
-                      setDateRangeLabel(opt)
+                      setDateRangeLabel(opt.label)
+                      if (setRevenueDays) setRevenueDays(opt.days)
                       setDateRangeOpen(false)
                     }}
                     style={{
                       width:'100%',
                       border:0,
-                      background: opt === dateRangeLabel ? 'var(--surface-2)' : 'transparent',
+                      background: opt.label === dateRangeLabel ? 'var(--surface-2)' : 'transparent',
                       color:'var(--ink)',
                       padding:'10px 11px',
                       borderRadius:10,
                       textAlign:'left',
                       cursor:'pointer',
                       fontSize:13,
-                      fontWeight: opt === dateRangeLabel ? 750 : 550
+                      fontWeight: opt.label === dateRangeLabel ? 750 : 550
                     }}
                   >
-                    {opt}
+                    {opt.label}
                   </button>
                 ))}
               </div>

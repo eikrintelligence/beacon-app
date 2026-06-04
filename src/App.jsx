@@ -60,6 +60,7 @@ function AppShell() {
   const [route, setRoute] = useState({ name: 'home', params: {} })
   const [needOnboarding, setNeedOnboarding] = useState(false)
   const [revenueData, setRevenueData] = useState(null)
+  const [revenueDays, setRevenueDays] = useState(30)
   const [workspaceData, setWorkspaceData] = useState(null)
   const [sideOpen, setSideOpen] = useState(false)
 
@@ -74,11 +75,11 @@ function AppShell() {
       getWorkspace(token, workspace?.id)
         .then(data => setWorkspaceData(data))
         .catch(() => {})
-      getRevenue(token, workspace?.id)
+      getRevenue(token, workspace?.id, revenueDays)
         .then(data => setRevenueData(data))
         .catch(() => {})
     }
-  }, [token, workspace])
+  }, [token, workspace, revenueDays])
 
   async function refreshWorkspace() {
     if (!token || !workspace?.id) return
@@ -152,7 +153,7 @@ function AppShell() {
         <Topbar route={route} navigate={navigate} tweaks={tweaks} setTweak={setTweak}
           profile={profile} onLogout={logout} setSideOpen={setSideOpen}/>
         <RouteView route={route} navigate={navigate} tweaks={tweaks}
-          revenueData={revenueData} workspaceData={workspaceData} refreshWorkspace={refreshWorkspace}
+          revenueData={revenueData} revenueDays={revenueDays} setRevenueDays={setRevenueDays} workspaceData={workspaceData} refreshWorkspace={refreshWorkspace}
           token={token} workspace={workspace} role={role}/>
       </div>
     </div>
@@ -340,9 +341,9 @@ function Topbar({ route, navigate, tweaks, setTweak, profile, onLogout, setSideO
   )
 }
 
-function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token, workspace, role, refreshWorkspace }) {
+function RouteView({ route, navigate, tweaks, revenueData, revenueDays, setRevenueDays, workspaceData, token, workspace, role, refreshWorkspace }) {
   switch (route.name) {
-    case 'home': return <ScreenHome onNavigate={navigate} onAsk={() => navigate('ask')} revenueData={revenueData} workspaceData={workspaceData} role={role} token={token} workspaceId={workspace?.id}/>
+    case 'home': return <ScreenHome onNavigate={navigate} onAsk={() => navigate('ask')} revenueData={revenueData} revenueDays={revenueDays} setRevenueDays={setRevenueDays} workspaceData={workspaceData} role={role} token={token} workspaceId={workspace?.id}/>
     case 'ask': return <ScreenAsk token={token} workspaceId={workspace?.id}/>
     case 'funnel': return <ScreenFunnel workspaceData={workspaceData} onNavigate={navigate}/>
     case 'attribution': return <ScreenAttribution workspaceData={workspaceData} onNavigate={navigate} token={token} workspaceId={workspace?.id}/>
@@ -358,7 +359,7 @@ function RouteView({ route, navigate, tweaks, revenueData, workspaceData, token,
     case 'social': return <ScreenSocial token={token} workspaceId={workspace?.id} onNavigate={navigate} workspaceData={workspaceData}/>
     case 'website': return <ScreenWebsite token={token} workspaceId={workspace?.id} onNavigate={navigate} workspaceData={workspaceData}/>
     case 'settings':
-      if (role !== 'admin') return <ScreenHome onNavigate={navigate} onAsk={() => navigate('ask')} revenueData={revenueData} workspaceData={workspaceData} role={role} token={token} workspaceId={workspace?.id}/>
+      if (role !== 'admin') return <ScreenHome onNavigate={navigate} onAsk={() => navigate('ask')} revenueData={revenueData} revenueDays={revenueDays} setRevenueDays={setRevenueDays} workspaceData={workspaceData} role={role} token={token} workspaceId={workspace?.id}/>
       return <ScreenSettings token={token} workspaceId={workspace?.id} workspaceData={workspaceData} role={role}/>
     default: return <div className="page"><h1>Coming soon</h1></div>
   }
