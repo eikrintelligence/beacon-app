@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getAIFeedback } from './api'
-import { Icon } from './icons'
+import { Icon } from './shared'
 
 function shortDate(value) {
   if (!value) return '—'
