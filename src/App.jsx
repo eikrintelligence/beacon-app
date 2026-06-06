@@ -86,6 +86,22 @@ function AppShell() {
     try { const data = await getWorkspace(token, workspace.id); setWorkspaceData(data) } catch (e) {}
   }
 
+  useEffect(() => {
+    const onSlashShortcut = e => {
+      const active = document.activeElement
+      const isTyping = active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName)
+      if (isTyping) return
+
+      if (e.key === '/' || e.code === 'NumpadDivide') {
+        e.preventDefault()
+        navigate('ask')
+      }
+    }
+
+    window.addEventListener('keydown', onSlashShortcut)
+    return () => window.removeEventListener('keydown', onSlashShortcut)
+  }, [])
+
   async function refreshWorkspace() {
     if (token && workspace?.id) {
       try { const data = await getWorkspace(token, workspace.id); setWorkspaceData(data) } catch (e) {}
