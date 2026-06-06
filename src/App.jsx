@@ -12,6 +12,7 @@ import { ScreenSocial } from './ScreenSocial'
 import { ScreenWebsite } from './ScreenWebsite'
 import { ScreenAlerts } from './ScreenAlerts'
 import ScreenHistory from './ScreenHistory'
+import ScreenAIFeedback from './ScreenAIFeedback'
 import ScreenCohorts from './ScreenCohorts'
 import { ScreenSKU } from './ScreenSKU'
 import { ScreenSubscriptions } from './ScreenSubscriptions'
@@ -40,6 +41,7 @@ const NAV = [
   { id:'website',      label:'Website',       icon:'grid',     group:'analysis' },
   { id:'history',     label:'History',        icon:'clock',    group:'analysis' },
   { id:'connections',  label:'Sources',        icon:'plug',     group:'admin' },
+  { id:'ai-feedback',  label:'AI Feedback',    icon:'sparkles', group:'admin' },
   { id:'settings',     label:'Settings',       icon:'gear',     group:'admin' },
 ]
 
@@ -48,7 +50,7 @@ const TWEAK_DEFAULTS = {
 }
 
 const ROLE_NAV = {
-  admin:   ['home','ask','dashboards','funnel','attribution','sku','subscriptions','cohorts','goals','alerts','email','social','website','history','connections','settings'],
+  admin:   ['home','ask','dashboards','funnel','attribution','sku','subscriptions','cohorts','goals','alerts','email','social','website','history','connections','ai-feedback','settings'],
   analyst: ['home','ask','dashboards','funnel','attribution','sku','subscriptions','goals','alerts','email','social','website','history','connections'],
   client:  ['home','goals'],
   agency:  ['home','dashboards','social','connections'],
@@ -374,6 +376,7 @@ function RouteView({ route, navigate, tweaks, revenueData, revenueDays, setReven
     case 'email': return <ScreenEmail token={token} workspaceId={workspace?.id} onNavigate={navigate} workspaceData={workspaceData}/>
     case 'social': return <ScreenSocial token={token} workspaceId={workspace?.id} onNavigate={navigate} workspaceData={workspaceData}/>
     case 'website': return <ScreenWebsite token={token} workspaceId={workspace?.id} onNavigate={navigate} workspaceData={workspaceData}/>
+    case 'ai-feedback': return <ScreenAIFeedback token={token} workspaceId={workspace?.id}/>
     case 'settings':
       if (role !== 'admin') return <ScreenHome onNavigate={navigate} onAsk={() => navigate('ask')} revenueData={revenueData} revenueDays={revenueDays} setRevenueDays={setRevenueDays} workspaceData={workspaceData} role={role} token={token} workspaceId={workspace?.id}/>
       return <ScreenSettings token={token} workspaceId={workspace?.id} workspaceData={workspaceData} role={role}/>

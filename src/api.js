@@ -130,3 +130,15 @@ export async function getDigest(token, workspaceId) {
   })
   return res.json()
 }
+
+export async function getAIFeedback(token, workspaceId, rating = '') {
+  const qs = new URLSearchParams({ workspace_id: workspaceId })
+  if (rating) qs.set('rating', rating)
+
+  const res = await fetch(`${BASE}/feedback?${qs.toString()}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+
+  return res.json()
+}
+
