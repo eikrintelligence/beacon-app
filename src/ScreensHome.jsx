@@ -386,7 +386,7 @@ export function ScreenAsk({ token, workspaceId }) {
       for (let i = 0; i < list.length; i++) {
         if (list[i].role === 'user') {
           const nxt = list[i + 1]
-          pairs.push({ q: list[i].content, a: nxt?.role === 'assistant' ? nxt.content : '' })
+          pairs.push({ q: list[i].content, a: nxt?.role === 'assistant' ? nxt.content : '', sources: nxt?.sources || [] })
           if (nxt?.role === 'assistant') i++
         }
       }
@@ -442,10 +442,11 @@ export function ScreenAsk({ token, workspaceId }) {
       const { askAI } = await import('./api')
       const result = await askAI(token, workspaceId, question, threadId)
       const answer = result.answer || result.error || 'No response received'
+      const sources = Array.isArray(result.sources) ? result.sources : []
 
       setThreadMessages(prev => {
         const msgs = [...(prev[threadId] || [])]
-        if (msgs.length) msgs[msgs.length - 1] = { q: question, a: answer }
+        if (msgs.length) msgs[msgs.length - 1] = { q: question, a: answer, sources }
         return { ...prev, [threadId]: msgs }
       })
 
@@ -621,6 +622,37 @@ export function ScreenAsk({ token, workspaceId }) {
                   <div style={{ fontSize:14.5, lineHeight:1.7, color:'var(--ink-2)' }}
                     dangerouslySetInnerHTML={{ __html: t.a.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }}
                   />
+
+                  {Array.isArray(t.sources) && t.sources.length > 0 && (
+                    <div style={{
+                      marginTop: 12,
+                      padding: '9px 11px',
+                      borderRadius: 12,
+                      background: 'var(--surface-2)',
+                      border: '1px solid var(--border)',
+                      fontSize: 12,
+                      color: 'var(--ink-3)',
+                      display: 'flex',
+                      gap: 8,
+                      flexWrap: 'wrap',
+                      alignItems: 'center'
+                    }}>
+                      <span style={{ fontWeight: 750, color: 'var(--ink-2)' }}>Sources used:</span>
+                      {t.sources.slice(0, 5).map(src => (
+                        <span key={src.platform || src.name} style={{
+                          padding: '3px 8px',
+                          borderRadius: 999,
+                          background: 'var(--surface)',
+                          border: '1px solid var(--border)',
+                          color: 'var(--ink-2)',
+                          fontWeight: 650
+                        }}>
+                          {src.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="row between" style={{ marginTop:14, paddingTop:12, borderTop:'1px solid var(--border)' }}>
                     <button
                       className="btn sm ghost"
