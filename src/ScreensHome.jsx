@@ -489,31 +489,6 @@ export function ScreenAsk({ token, workspaceId }) {
         })
       })
     } catch (e) {
-      // Keep local UI feedback even if logging fails
-      console.warn('Feedback save failed', e)
-    }
-  }
-
-  async function saveAnswerFeedback(item, rating, key) {
-    setAnswerFeedback(prev => ({ ...prev, [key]: rating === 'helpful' ? 'up' : 'down' }))
-
-    try {
-      await fetch(`${BASE_API}/feedback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          workspace_id: workspaceId,
-          thread_id: currentThreadId,
-          question: item.q,
-          answer: item.a,
-          rating,
-          sources: item.sources || []
-        })
-      })
-    } catch (e) {
       console.warn('Feedback save failed', e)
     }
   }
