@@ -264,6 +264,111 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
     klaviyo: `https://sja.eikr.ee/api/klaviyo/metrics?workspace_id=${workspaceId}`,
   }
 
+  function classifySyncIssue(platformId, payload) {
+    const text = JSON.stringify(payload || '').toLowerCase()
+
+    if (
+      platformId === 'gads' &&
+      (
+        text.includes('developer token is only approved for use with test accounts') ||
+        text.includes('apply for basic or standard access') ||
+        text.includes('authorization_error')
+      )
+    ) {
+      return 'pending'
+    }
+
+    if (
+      text.includes('403') ||
+      text.includes('forbidden') ||
+      text.includes('missing permission') ||
+      text.includes('missing permissions') ||
+      text.includes('scope') ||
+      text.includes('read_orders') ||
+      text.includes('access denied')
+    ) {
+      return 'permission'
+    }
+
+    if (
+      text.includes('401') ||
+      text.includes('invalid token') ||
+      text.includes('expired') ||
+      text.includes('unauthorized') ||
+      text.includes('invalid api key')
+    ) {
+      return 'reauth'
+    }
+
+    if (
+      text.includes('no data') ||
+      text.includes('no campaigns') ||
+      text.includes('no lists') ||
+      text.includes('empty')
+    ) {
+      return 'nodata'
+    }
+
+    return 'failed'
+  }
+
+  function getSourceStatusMeta(sync) {
+    if (sync === 'syncing') {
+      return {
+        label: 'Syncing…',
+        bg: 'color-mix(in oklab,#888 15%,var(--surface))',
+        color: 'var(--ink-3)',
+        spinner: true
+      }
+    }
+
+    if (sync === 'pending') {
+      return {
+        label: 'Approval pending ⏳',
+        bg: 'color-mix(in oklab,var(--accent) 18%,var(--surface))',
+        color: 'var(--accent)'
+      }
+    }
+
+    if (sync === 'permission') {
+      return {
+        label: 'Missing permissions ⚠',
+        bg: 'color-mix(in oklab,var(--dn) 12%,var(--surface))',
+        color: 'var(--dn)'
+      }
+    }
+
+    if (sync === 'reauth') {
+      return {
+        label: 'Needs reconnect 🔐',
+        bg: 'color-mix(in oklab,var(--dn) 12%,var(--surface))',
+        color: 'var(--dn)'
+      }
+    }
+
+    if (sync === 'nodata') {
+      return {
+        label: 'No data yet',
+        bg: 'color-mix(in oklab,var(--accent) 12%,var(--surface))',
+        color: 'var(--accent)'
+      }
+    }
+
+    if (sync === 'failed') {
+      return {
+        label: 'Sync failed ⚠',
+        bg: 'color-mix(in oklab,var(--dn) 15%,var(--surface))',
+        color: 'var(--dn)'
+      }
+    }
+
+    return {
+      label: 'Connected ✓',
+      bg: 'color-mix(in oklab,var(--up) 15%,var(--surface))',
+      color: 'var(--up)'
+    }
+  }
+
   async function syncAfterConnect(platformId, platformName) {
     const url = SYNC_URLS[platformId]
     if (!url) { setSyncStatus(p => ({ ...p, [platformId]: 'ok' })); setMsg(`✓ ${platformName} connected!`); return }
@@ -272,20 +377,18 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
     try {
       const d = await fetch(url, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json())
       if (d.error) {
-        const detailsText = JSON.stringify(d.details || d.error || '').toLowerCase()
-        const isGoogleAdsApprovalPending =
-          platformId === 'gads' &&
-          (
-            detailsText.includes('developer token is only approved for use with test accounts') ||
-            detailsText.includes('apply for basic or standard access') ||
-            detailsText.includes('authorization_error')
-          )
+        const issue = classifySyncIssue(platformId, d)
+        setSyncStatus(p => ({ ...p, [platformId]: issue }))
 
-        if (isGoogleAdsApprovalPending) {
-          setSyncStatus(p => ({ ...p, [platformId]: 'pending' }))
+        if (issue === 'pending') {
           setMsg('✓ Google Ads connected — campaign data will unlock after Google approves Eikr API access')
+        } else if (issue === 'permission') {
+          setMsg(`${platformName} connected, but Faro needs additional permissions`)
+        } else if (issue === 'reauth') {
+          setMsg(`${platformName} needs to be reconnected`)
+        } else if (issue === 'nodata') {
+          setMsg(`${platformName} connected, but no data was returned yet`)
         } else {
-          setSyncStatus(p => ({ ...p, [platformId]: 'failed' }))
           setMsg('Connected but data sync failed — check credentials')
         }
       } else {
@@ -535,6 +638,7 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
           const conn      = getConn(s.id)
           const isOpen    = connecting === s.id
           const sync      = syncStatus[s.id]
+          const statusMeta = getSourceStatusMeta(sync)
           return (
             <div key={s.id} className={'conn-card' + (connected ? ' connected' : '')} style={{ gap: 12 }}>
               {/* Header row */}
@@ -544,24 +648,16 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{s.name}</div>
                   {connected ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
-                      <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: 10.5, fontWeight: 700,
-                        background:
-                          sync === 'syncing' ? 'color-mix(in oklab,#888 15%,var(--surface))' :
-                          sync === 'failed' ? 'color-mix(in oklab,var(--dn) 15%,var(--surface))' :
-                          sync === 'pending' ? 'color-mix(in oklab,var(--accent) 18%,var(--surface))' :
-                          'color-mix(in oklab,var(--up) 15%,var(--surface))',
-                        color:
-                          sync === 'syncing' ? 'var(--ink-3)' :
-                          sync === 'failed' ? 'var(--dn)' :
-                          sync === 'pending' ? 'var(--accent)' :
-                          'var(--up)' }}>
-                        {sync === 'syncing'
-                          ? <><span className="faro-spinner"/>Syncing…</>
-                          : sync === 'failed'
-                            ? 'Sync failed ⚠'
-                            : sync === 'pending'
-                              ? 'Approval pending ⏳'
-                              : 'Connected ✓'}
+                      <span style={{
+                        padding: '2px 8px',
+                        borderRadius: 999,
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        background: statusMeta.bg,
+                        color: statusMeta.color
+                      }}>
+                        {statusMeta.spinner && <span className="faro-spinner"/>}
+                        {statusMeta.label}
                       </span>
                       {conn?.last_synced && sync !== 'syncing' && (
                         <span className="muted" style={{ fontSize: 10.5 }}>
@@ -574,6 +670,21 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
                   )}
                 </div>
               </div>
+
+              {connected && !isOpen && (
+                <div style={{ display:'flex', gap:8 }}>
+                  <button
+                    className="btn sm ghost"
+                    onClick={() => syncAfterConnect(s.id, s.name)}
+                    disabled={sync === 'syncing'}
+                  >
+                    {sync === 'syncing' ? <><span className="faro-spinner"/>Checking…</> : 'Check source health'}
+                  </button>
+                  <button className="btn sm ghost" onClick={() => setConnecting(s.id)}>
+                    Update
+                  </button>
+                </div>
+              )}
 
               {/* Shopify form */}
               {isOpen && s.id === 'shopify' && (
