@@ -473,23 +473,57 @@ export function ScreenAsk({ token, workspaceId }) {
     setLoadingMsg(false)
   }
 
-  function formatSourceFreshness(sources = []) {
+  function getSourceFreshnessMeta(sources = []) {
     const dates = sources
       .map(s => s.last_synced ? new Date(s.last_synced) : null)
       .filter(d => d && !Number.isNaN(d.getTime()))
       .sort((a, b) => b - a)
 
-    if (!dates.length) return 'Sync time unavailable'
+    if (!dates.length) {
+      return {
+        label: 'Sync time unavailable',
+        status: 'unknown',
+        color: 'var(--ink-4)',
+        background: 'var(--surface)'
+      }
+    }
 
     const latest = dates[0]
     const diffMs = Date.now() - latest.getTime()
     const mins = Math.floor(diffMs / 60000)
     const hours = Math.floor(mins / 60)
+    const days = Math.floor(hours / 24)
 
-    if (mins < 2) return 'Synced just now'
-    if (mins < 60) return `Latest sync ${mins} min ago`
-    if (hours < 24) return `Latest sync ${hours}h ago`
-    return `Latest sync ${latest.toLocaleDateString()}`
+    let label = ''
+    if (mins < 2) label = 'Synced just now'
+    else if (mins < 60) label = `Latest sync ${mins} min ago`
+    else if (hours < 24) label = `Latest sync ${hours}h ago`
+    else label = `Latest sync ${days}d ago`
+
+    if (hours < 24) {
+      return {
+        label,
+        status: 'fresh',
+        color: 'var(--up)',
+        background: 'rgba(74,222,128,0.12)'
+      }
+    }
+
+    if (hours < 72) {
+      return {
+        label: `${label} · getting stale`,
+        status: 'stale',
+        color: 'var(--accent)',
+        background: 'rgba(236,107,78,0.12)'
+      }
+    }
+
+    return {
+      label: `${label} · verify before decisions`,
+      status: 'old',
+      color: 'var(--dn)',
+      background: 'rgba(248,113,113,0.12)'
+    }
   }
 
   async function saveAnswerFeedback(item, rating, key) {
@@ -700,9 +734,27 @@ export function ScreenAsk({ token, workspaceId }) {
                           </span>
                         ))}
                       </div>
-                      <div style={{ marginTop: 7, fontSize: 11.5, color: 'var(--ink-4)' }}>
-                        {formatSourceFreshness(t.sources)}
-                      </div>
+                      {(() => {
+                        const freshness = getSourceFreshnessMeta(t.sources)
+                        return (
+                          <div style={{
+                            marginTop: 8,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            padding: '4px 8px',
+                            borderRadius: 999,
+                            fontSize: 11.5,
+                            fontWeight: 750,
+                            color: freshness.color,
+                            background: freshness.background,
+                            border: '1px solid var(--border)'
+                          }}>
+                            <span>{freshness.status === 'fresh' ? '●' : freshness.status === 'unknown' ? '○' : '⚠'}</span>
+                            <span>{freshness.label}</span>
+                          </div>
+                        )
+                      })()}
                     </div>
                   )}
 
