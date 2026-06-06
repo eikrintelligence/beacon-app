@@ -217,8 +217,6 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
   const [syncStatus, setSyncStatus] = useState({})
   // Shopify
   const [shopifyUrl, setShopifyUrl] = useState('')
-  const [shopifyClientId, setShopifyClientId] = useState('')
-  const [shopifyClientSecret, setShopifyClientSecret] = useState('')
   // Meta
   const [metaToken, setMetaToken] = useState('')
   const [metaAccountId, setMetaAccountId] = useState('')
@@ -431,19 +429,23 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
   async function connectShopify() {
     setLoading(true); setMsg('')
     try {
-      const clean = shopifyUrl.replace(/^https?:\/\//,'').replace(/\/$/,'')
-      const r = await post('https://sja.eikr.ee/api/shopify/connect-client-credentials', {
-        store_url: clean,
+      const cleanShop = String(shopifyUrl || '')
+        .trim()
+        .replace('https://', '')
+        .replace('http://', '')
+        .replace(/\/$/, '')
+
+      const r = await post('https://sja.eikr.ee/api/shopify/oauth/start', {
         workspace_id: workspaceId,
-        client_id: shopifyClientId,
-        client_secret: shopifyClientSecret
+        shop: cleanShop
       })
 
-      if (r.success) {
-        await afterConnect('shopify', 'Shopify')
-      } else {
-        setMsg('Error: ' + (r.error || r.details?.error_description || 'Shopify connection failed'))
+      if (r.url) {
+        window.location.href = r.url
+        return
       }
+
+      setMsg('Error: ' + (r.error || 'Could not start Shopify approval flow'))
     } catch (e) {
       setMsg('Connection failed: ' + e.message)
     }
@@ -686,17 +688,22 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
                 </div>
               )}
 
-              {/* Shopify form */}
+              {/* Shopify OAuth form */}
               {isOpen && s.id === 'shopify' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {connected && <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Enter new credentials to update:</div>}
-                  <input style={inp} placeholder="yourstore.myshopify.com" value={shopifyUrl} onChange={e => setShopifyUrl(e.target.value)}/>
-                  <input style={inp} placeholder="Shopify Client ID" value={shopifyClientId} onChange={e => setShopifyClientId(e.target.value)}/>
-                  <input style={inp} type="password" placeholder="Shopify Client Secret" value={shopifyClientSecret} onChange={e => setShopifyClientSecret(e.target.value)}/>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.45 }}>
+                    Connect Shopify by approving Faro inside Shopify. No API keys or client secrets are needed from the merchant.
+                  </div>
+                  <input
+                    style={inp}
+                    placeholder="yourstore.myshopify.com"
+                    value={shopifyUrl}
+                    onChange={e => setShopifyUrl(e.target.value)}
+                  />
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button className="btn sm" onClick={() => setConnecting(null)}>Cancel</button>
-                    <button className="btn sm primary" style={{ flex: 1 }} onClick={connectShopify} disabled={loading || !shopifyUrl || !shopifyClientId || !shopifyClientSecret}>
-                      {loading ? <><span className="faro-spinner"/>Connecting…</> : connected ? 'Update' : 'Connect'}
+                    <button className="btn sm primary" style={{ flex: 1 }} onClick={connectShopify} disabled={loading || !shopifyUrl}>
+                      {loading ? <><span className="faro-spinner"/>Opening Shopify…</> : connected ? 'Reconnect Shopify' : 'Connect Shopify'}
                     </button>
                   </div>
                 </div>
