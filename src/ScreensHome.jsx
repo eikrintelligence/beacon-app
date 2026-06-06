@@ -469,6 +469,31 @@ export function ScreenAsk({ token, workspaceId }) {
     setLoadingMsg(false)
   }
 
+  async function saveAnswerFeedback(item, rating, key) {
+    setAnswerFeedback(prev => ({ ...prev, [key]: rating === 'helpful' ? 'up' : 'down' }))
+
+    try {
+      await fetch(`${BASE_API}/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          workspace_id: workspaceId,
+          thread_id: currentThreadId,
+          question: item.q,
+          answer: item.a,
+          rating,
+          sources: item.sources || []
+        })
+      })
+    } catch (e) {
+      // Keep local UI feedback even if logging fails
+      console.warn('Feedback save failed', e)
+    }
+  }
+
   const isLoadingThread = loadingThreadId === currentThreadId
 
   useEffect(() => {
@@ -675,7 +700,7 @@ export function ScreenAsk({ token, workspaceId }) {
                         className="btn sm ghost"
                         title="Helpful"
                         style={answerFeedback[`msg-${i}`] === 'up' ? { background:'rgba(74,222,128,0.12)', color:'var(--up)' } : null}
-                        onClick={() => setAnswerFeedback(prev => ({ ...prev, [`msg-${i}`]: 'up' }))}
+                        onClick={() => saveAnswerFeedback(t, 'helpful', `msg-${i}`)}
                       >
                         👍 Helpful
                       </button>
@@ -683,7 +708,7 @@ export function ScreenAsk({ token, workspaceId }) {
                         className="btn sm ghost"
                         title="Not helpful"
                         style={answerFeedback[`msg-${i}`] === 'down' ? { background:'rgba(248,113,113,0.12)', color:'var(--dn)' } : null}
-                        onClick={() => setAnswerFeedback(prev => ({ ...prev, [`msg-${i}`]: 'down' }))}
+                        onClick={() => saveAnswerFeedback(t, 'needs_work', `msg-${i}`)}
                       >
                         👎 Needs work
                       </button>
