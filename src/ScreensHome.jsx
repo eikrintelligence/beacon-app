@@ -469,6 +469,25 @@ export function ScreenAsk({ token, workspaceId }) {
     setLoadingMsg(false)
   }
 
+  function formatSourceFreshness(sources = []) {
+    const dates = sources
+      .map(s => s.last_synced ? new Date(s.last_synced) : null)
+      .filter(d => d && !Number.isNaN(d.getTime()))
+      .sort((a, b) => b - a)
+
+    if (!dates.length) return 'Sync time unavailable'
+
+    const latest = dates[0]
+    const diffMs = Date.now() - latest.getTime()
+    const mins = Math.floor(diffMs / 60000)
+    const hours = Math.floor(mins / 60)
+
+    if (mins < 2) return 'Synced just now'
+    if (mins < 60) return `Latest sync ${mins} min ago`
+    if (hours < 24) return `Latest sync ${hours}h ago`
+    return `Latest sync ${latest.toLocaleDateString()}`
+  }
+
   async function saveAnswerFeedback(item, rating, key) {
     setAnswerFeedback(prev => ({ ...prev, [key]: rating === 'helpful' ? 'up' : 'down' }))
 
@@ -650,30 +669,36 @@ export function ScreenAsk({ token, workspaceId }) {
                   {Array.isArray(t.sources) && t.sources.length > 0 && (
                     <div style={{
                       marginTop: 12,
-                      padding: '9px 11px',
+                      padding: '10px 11px',
                       borderRadius: 12,
                       background: 'var(--surface-2)',
                       border: '1px solid var(--border)',
                       fontSize: 12,
-                      color: 'var(--ink-3)',
-                      display: 'flex',
-                      gap: 8,
-                      flexWrap: 'wrap',
-                      alignItems: 'center'
+                      color: 'var(--ink-3)'
                     }}>
-                      <span style={{ fontWeight: 750, color: 'var(--ink-2)' }}>Sources used:</span>
-                      {t.sources.slice(0, 5).map(src => (
-                        <span key={src.platform || src.name} style={{
-                          padding: '3px 8px',
-                          borderRadius: 999,
-                          background: 'var(--surface)',
-                          border: '1px solid var(--border)',
-                          color: 'var(--ink-2)',
-                          fontWeight: 650
-                        }}>
-                          {src.name}
-                        </span>
-                      ))}
+                      <div style={{
+                        display: 'flex',
+                        gap: 8,
+                        flexWrap: 'wrap',
+                        alignItems: 'center'
+                      }}>
+                        <span style={{ fontWeight: 750, color: 'var(--ink-2)' }}>Sources used:</span>
+                        {t.sources.slice(0, 5).map(src => (
+                          <span key={src.platform || src.name} style={{
+                            padding: '3px 8px',
+                            borderRadius: 999,
+                            background: 'var(--surface)',
+                            border: '1px solid var(--border)',
+                            color: 'var(--ink-2)',
+                            fontWeight: 650
+                          }}>
+                            {src.name}
+                          </span>
+                        ))}
+                      </div>
+                      <div style={{ marginTop: 7, fontSize: 11.5, color: 'var(--ink-4)' }}>
+                        {formatSourceFreshness(t.sources)}
+                      </div>
                     </div>
                   )}
 
