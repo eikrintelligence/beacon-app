@@ -386,7 +386,11 @@ export function ScreenAsk({ token, workspaceId }) {
       for (let i = 0; i < list.length; i++) {
         if (list[i].role === 'user') {
           const nxt = list[i + 1]
-          pairs.push({ q: list[i].content, a: nxt?.role === 'assistant' ? nxt.content : '', sources: nxt?.sources || [] })
+          pairs.push({
+            q: list[i].content,
+            a: nxt?.role === 'assistant' ? nxt.content : '',
+            sources: nxt?.metadata?.sources || nxt?.sources || []
+          })
           if (nxt?.role === 'assistant') i++
         }
       }
