@@ -435,7 +435,7 @@ export function ScreenConnections({ token, workspaceId, refreshWorkspace }) {
         .replace('http://', '')
         .replace(/\/$/, '')
 
-      const r = await post('https://sja.eikr.ee/api/shopify/oauth/start', {
+      const r = await post('https://sja.eikr.ee/api/shopify/connect', {
         workspace_id: workspaceId,
         shop: cleanShop
       })

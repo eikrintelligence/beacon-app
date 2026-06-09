@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh repo *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(git count-objects *)",
+      "Bash(git init *)",
+      "Bash(git -C /root/beacon-app/project rev-parse --show-toplevel)",
+      "Bash(git -C /root/beacon-app/project remote -v)",
+      "Bash(git -C /root/beacon-app/project add index.html package.json package-lock.json vite.config.js .gitignore public/ src/)",
+      "Bash(git -C /root/beacon-app/project status)",
+      "Bash(git *)",
+      "Bash(npx vercel *)"
+    ]
+  }
+}
